@@ -12,4 +12,10 @@
 
 | Date | Env var name | What / why | Requested by | Status |
 |---|---|---|---|---|
-| — | — | _(none yet)_ | — | — |
+| 2026-06-12 | `FIREBASE_*` (client config) | Firebase project web config for the client app (auth + Firestore + Storage). Free Spark tier is fine for v1. | CEO | REQUESTED |
+| 2026-06-12 | `FIREBASE_SERVICE_ACCOUNT_PATH` | Path to a Firebase service-account JSON (kept OUTSIDE the repo) for the Express server's Admin SDK. | CEO | REQUESTED |
+
+> Needed only once building starts (cycle 1), not before approval. To provision: create a
+> Firebase project, enable Auth + Firestore + Storage, copy the web config into `.env`, and
+> download a service-account key to a path outside the repo, then set
+> `FIREBASE_SERVICE_ACCOUNT_PATH` in `.env`.
