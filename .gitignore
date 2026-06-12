@@ -1,0 +1,23 @@
+# Secrets — NEVER commit
+.env
+.env.local
+*-service-account.json
+firebase-service-account.json
+*.pem
+*.key
+
+# Dependencies
+node_modules/
+
+# Build output
+.nuxt/
+dist/
+.output/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.eslintcache
