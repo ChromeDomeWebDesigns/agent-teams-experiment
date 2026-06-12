@@ -126,13 +126,20 @@ from disk and continues. Re-spawn teammates as needed (they do not survive `/res
 
 - Branch per task: `feat/<slug>`, `fix/<slug>`, `chore/<slug>`. **Never push to `main`.**
 - Commits are small and conventional (`feat:`, `fix:`, `chore:`, `test:`, `docs:`).
-- Open PRs with `gh` using the **`git@github.com-cuddyz`** remote alias (per global rules).
-- A `PreToolUse` hook hard-blocks `git push` to main and remote-alias changes; a
-  `TaskCompleted` hook blocks completion if lint/tests fail. Do not try to bypass them.
+- This repo's remote is the **ChromeDomeWebDesigns** org via the `git@github.com-cdwd` SSH
+  host alias (`origin`). Use that alias (never the bare `git@github.com:` host). Open PRs
+  with `gh`.
+- A `PreToolUse` hook hard-blocks `git push` to main and the bare-host; a `TaskCompleted`
+  hook blocks completion if lint/tests fail. Do not try to bypass them.
 
 ## 8. Guardrails (already enforced by `.claude/settings.json`)
 
 - Full autonomy **inside this repo**; reads allowed anywhere; **writes outside the repo
   prompt for approval**; network open. Enforced by the Bash sandbox + `acceptEdits`.
+- **Non-destructive dev commands run without prompts**: `npm install`/`ci`, `npm run
+  lint`/`lintfix`/`build`/`test`, `npx eslint`/`prettier`, `node` (the npm cache `~/.npm` is
+  sanctioned for writes so installs stay sandboxed).
+- **Destructive commands still prompt** even in-repo: `rm`, `rmdir`, `chmod`, `chown`,
+  `sudo`, `git reset --hard`, `git clean`.
 - Credentials dirs (`~/.ssh`, `~/.aws`) are read-blocked.
 - Keep secrets out of git (§4). Keep the work checkpointed to disk (§2).
