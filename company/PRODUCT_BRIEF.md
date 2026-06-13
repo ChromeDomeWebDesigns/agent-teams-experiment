@@ -84,3 +84,45 @@ v1 = a focused web app where a logged-in user can:
    reachable), or do you prefer a bigger-but-more-competitive category (e.g., trading cards),
    or a different collectible you have access to a community for?
 2. **Working name** — keep "Vault" placeholder or set your own?
+
+---
+
+## POC Definition of Done
+
+> Deadline: **2026-06-19**. When every item below is checked, the POC is complete — we stop
+> and summarize. We do NOT iterate further without human direction.
+
+1. **Auth.** A user can sign up and sign in with email/password (Firebase Auth). All app
+   routes except /login and /signup are guarded; unauthenticated access redirects to /login.
+2. **Add item.** A logged-in user can submit a form to add a vintage camera/lens item with:
+   make, model, serial number, condition, purchase price, purchase date, current value, and
+   at least one photo. The item is persisted to their Firestore `items` collection.
+3. **Gallery.** The user can view all their items in a list/gallery with total collection
+   value displayed. Items belong strictly to the authenticated user (no cross-user leakage).
+4. **Insurance export.** The user can trigger an export that produces a printable/PDF
+   document containing: itemized list with photos, make/model, condition, value per item,
+   collection total, and a generated date. This is the core differentiator — it must work
+   end-to-end (client action → server endpoint → rendered output the user can print/save).
+5. **Quality gates.** Per-user Firestore security rules deny cross-user document access
+   (verified by test). Core flows (auth store, add-item form) have passing unit tests.
+   `npm run lint` passes clean. Changes are committed on a feature branch with a PR open
+   against `main`.
+
+### Explicitly POST-POC (do not build before DoD is met)
+- Valuation history over time (timestamped value log per item, history chart).
+- Automated price feeds or sold-comp lookups.
+- Category expansion, trading/marketplace, social features, mobile native app.
+
+---
+
+## Targets / cadence to 2026-06-19
+
+- **Cycle 2 (now):** Firebase wiring — Auth (email/password), Firestore data model +
+  security rules, add-item form, item gallery. Blocked on human procurement of Firebase
+  creds.
+- **Cycle 3:** Insurance export — server-side PDF/print endpoint, client "Export" action
+  wired end-to-end. Polish: form validation, error states, basic responsive layout.
+- **Cycle 4:** Hardening — QA coverage on auth store + add-item flow, security-rules test,
+  lint gate, PR to `main`. POC DoD check.
+
+We stop at POC. No further cycles without human direction.

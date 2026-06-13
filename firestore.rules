@@ -1,0 +1,32 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Deny everything by default — only explicitly matched paths are accessible.
+
+    // items — owner-only access
+    match /items/{itemId} {
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null
+                                  && resource.data.userId == request.auth.uid;
+
+      // valuations — only the parent item's owner may access
+      match /valuations/{valId} {
+        allow create: if request.auth != null
+                      && get(/databases/$(database)/documents/items/$(itemId)).data.userId
+                         == request.auth.uid;
+        allow read, update, delete: if request.auth != null
+                                    && get(/databases/$(database)/documents/items/$(itemId)).data.userId
+                                       == request.auth.uid;
+      }
+    }
+
+    // logs — authed users may append; no reads, updates, or deletes
+    match /logs/{logId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if false;
+    }
+  }
+}

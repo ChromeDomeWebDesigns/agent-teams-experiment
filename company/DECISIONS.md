@@ -3,6 +3,19 @@
 > One short entry per non-trivial decision. Newest at top.
 > Format: ID · date · decision · context/why · consequences.
 
+## ADR-0005 · 2026-06-12 · POC deadline set to 2026-06-19; valuation history deferred post-POC
+- **Decision:** The working POC must be complete by 2026-06-19 (~7 days from approval).
+  Valuation history (timestamped value log per item) and automated price feeds are explicitly
+  deferred to post-POC. The POC DoD is 5 objectively verifiable items: auth, add item,
+  gallery with total value, insurance export end-to-end, quality gates. See
+  `company/PRODUCT_BRIEF.md § POC Definition of Done`.
+- **Why:** Tight deadline prevents endless iteration. The insurance export (the core
+  differentiator) must ship in the POC to validate the thesis. Valuation history adds real
+  value but is not required to validate "can a collector catalog items and export for insurance."
+- **Consequences:** The team stops when DoD is met or the deadline passes. No cycle may add
+  features not in the DoD without re-scoping this ADR. Valuation history is the first
+  post-POC item if the thesis validates.
+
 ## ADR-0004 · 2026-06-12 · Merge governance under a single GitHub account
 - **Decision:** With one authenticating GitHub account (ChromeDomeWebDesigns), the
   `code-reviewer` cannot use `gh pr review --approve` on the company's own PRs (GitHub blocks

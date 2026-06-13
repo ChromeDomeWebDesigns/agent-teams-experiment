@@ -1,0 +1,15 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // A user may read and write only within their own namespace.
+    // Path shape: users/{uid}/items/{itemId}/<filename>
+    match /users/{uid}/{allPaths=**} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == uid;
+    }
+
+    // Deny everything else by default.
+  }
+}

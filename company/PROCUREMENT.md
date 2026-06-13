@@ -12,10 +12,10 @@
 
 | Date | Env var name | What / why | Requested by | Status |
 |---|---|---|---|---|
-| 2026-06-12 | `FIREBASE_*` (client config) | Firebase project web config for the client app (auth + Firestore + Storage). Free Spark tier is fine for v1. | CEO | REQUESTED |
-| 2026-06-12 | `FIREBASE_SERVICE_ACCOUNT_PATH` | Path to a Firebase service-account JSON (kept OUTSIDE the repo) for the Express server's Admin SDK. | CEO | REQUESTED |
+| 2026-06-12 | `NUXT_ENV_FIREBASE_*` (client config) | Firebase web config for the client (auth + Firestore + Storage). | CEO | ✅ FULFILLED 2026-06-13 |
+| 2026-06-12 | `FIREBASE_SERVICE_ACCOUNT_PATH` | Service-account JSON (outside the repo) for the Express Admin SDK. | CEO | ✅ FULFILLED 2026-06-13 |
 
-> Needed only once building starts (cycle 1), not before approval. To provision: create a
-> Firebase project, enable Auth + Firestore + Storage, copy the web config into `.env`, and
-> download a service-account key to a path outside the repo, then set
-> `FIREBASE_SERVICE_ACCOUNT_PATH` in `.env`.
+> ✅ **Firebase is fully provisioned and verified** (project `agent-teams-experiment`): all
+> `NUXT_ENV_FIREBASE_*` web-config values + `FIREBASE_SERVICE_ACCOUNT_PATH` + `JWT_SECRET`
+> are in `.env`, and a **live admin Firestore read succeeded** (2026-06-13). No procurement
+> blockers remain — **do NOT treat Firebase as blocked.**
