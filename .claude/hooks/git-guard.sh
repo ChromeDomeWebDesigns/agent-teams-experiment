@@ -9,23 +9,23 @@ input="$(cat)"
 cmd="$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
 [ -z "$cmd" ] && exit 0
 
-# Strip quoted segments first, so commit messages / -m args / echoed text can't trip the
-# checks below (e.g. `git commit -m "mentions git push to main" && git push origin feat`).
+# 1) Strip quoted segments so commit messages / -m args / echoed text never trip checks.
 scan="$(printf '%s' "$cmd" | sed -E "s/'[^']*'//g; s/\"[^\"]*\"//g")"
 
-# Block the bare github.com host (must use github.com-cuddyz / github.com-cdwd).
+# 2) Block the bare github.com host (must use github.com-cuddyz / github.com-cdwd).
 if printf '%s' "$scan" | grep -qE 'git@github\.com:'; then
   echo "BLOCKED: use the SSH host alias (git@github.com-cuddyz / -cdwd), not the bare git@github.com: host." >&2
   exit 2
 fi
 
-# Block pushes to main/master. Inspect only the push target (text AFTER 'git push').
-if printf '%s' "$scan" | grep -qE '\bgit[[:space:]]+push\b'; then
-  push_args="$(printf '%s' "$scan" | sed -E 's/.*\bgit[[:space:]]+push\b//')"
-  if printf '%s' "$push_args" | grep -qE '(^|[[:space:]:/])(main|master)([[:space:]:]|$)'; then
-    echo "BLOCKED: never push to main/master. Push a feature branch and open a PR instead." >&2
-    exit 2
-  fi
+# 3) Block pushes to main/master. Split the command into segments on separators
+#    (; | & and newlines), keep only the 'git push' segments, and inspect just the
+#    args AFTER 'git push' in each — so `git push origin feat && gh pr create --base main`
+#    (the --base main belongs to gh, not the push) does NOT trip it.
+push_targets="$(printf '%s' "$scan" | tr ';|&' '\n' | grep -E '\bgit[[:space:]]+push\b' | sed -E 's/.*\bgit[[:space:]]+push\b//' || true)"
+if [ -n "$push_targets" ] && printf '%s' "$push_targets" | grep -qE '(^|[[:space:]:/])(main|master)([[:space:]:]|$)'; then
+  echo "BLOCKED: never push to main/master. Push a feature branch and open a PR instead." >&2
+  exit 2
 fi
 
 exit 0
