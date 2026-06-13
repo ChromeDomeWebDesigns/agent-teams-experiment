@@ -19,3 +19,15 @@
 > `NUXT_ENV_FIREBASE_*` web-config values + `FIREBASE_SERVICE_ACCOUNT_PATH` + `JWT_SECRET`
 > are in `.env`, and a **live admin Firestore read succeeded** (2026-06-13). No procurement
 > blockers remain — **do NOT treat Firebase as blocked.**
+
+---
+
+## Optional / non-blocking (apply in parallel — NOT on the POC critical path)
+
+| Date | Env var name | What / why | Requested by | Status |
+|---|---|---|---|---|
+| 2026-06-13 | `EBAY_APP_ID` | eBay Marketplace Insights API — App ID (client ID) for the eBay developer application. The Marketplace Insights API provides access to real sold-listing data (not just active listings). This is partner-gated and effectively unavailable to small projects without an approved application. Apply at https://developer.ebay.com/marketplace-account-deletion and/or via the eBay Partner Network. **NOT on the POC critical path** — the pivot uses a crowd-sourced comp dataset that avoids this dependency entirely. If access is granted post-POC, it becomes an automated sold-comp ingestion path (see BACKLOG "Later"). | PM (ADR-0006) | OPTIONAL — not requested yet; apply when convenient |
+| 2026-06-13 | `EBAY_CERT_ID` | eBay Marketplace Insights API — Cert ID (client secret) paired with `EBAY_APP_ID`. Same application, same status. | PM (ADR-0006) | OPTIONAL — not requested yet; apply when convenient |
+
+> These env vars are registered in `.env.example` for reference. Do not add them to `.env`
+> until eBay partner access is approved. The POC does not depend on them.

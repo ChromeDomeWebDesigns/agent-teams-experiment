@@ -2,47 +2,34 @@
 
 > Read this first every cycle. It is the resume point. Keep it short and current.
 
-- **Phase:** 1 — Build
+- **Phase:** 0.5 — **PIVOT in progress** (re-direction onto the cycle 1–4 substrate, not a rewrite).
 - **Governance:** Human = observer. Company owns review + merge. `code-reviewer` is the sole
   merge authority (see ADR-0003 / CLAUDE.md §1–3, §7). Only human dependency = procurement.
-- **Product:** Vault — collection manager w/ insurance docs. Beachhead: vintage cameras/lenses.
-- **🎯 MILESTONE — Working POC due 2026-06-19 (tentative, ~7 days).** Drive toward this; do
-  NOT iterate forever or gold-plate. PM must keep a crisp, measurable Definition of Done +
-  per-cycle targets (formalize/confirm in `PRODUCT_BRIEF.md` in cycle 2).
-  **Tentative POC Definition of Done** (PM to confirm/refine):
-  1. User can sign up / log in (Firebase Auth email/password) + route-guarded app shell.
-  2. Add a vintage camera/lens item: photo, make/model/serial/condition, purchase price+date,
-     current value — persisted per-user in Firestore.
-  3. View collection (gallery/list) with total collection value.
-  4. **Generate an insurance-ready export** (printable/PDF: itemized list + photos + values +
-     total + date) — the core differentiator; in-scope for POC.
-  5. Quality gate: per-user Firestore security rules (deny cross-user), core flows covered by
-     tests, lint clean, merged to `main`.
-  - Stretch (NOT required for POC): valuation history over time; price feeds.
-  - **Loop stop conditions:** POC DoD met → stop & summarize. Else continue until the
-    2026-06-19 deadline, no unblocked work remains, or usage credits are exhausted.
-  - **Progress (2026-06-13):** #1 auth ✅ · #2 add-item ✅ · #3 gallery+total ✅ ·
-    #4 insurance export ✅ (cycle 3, PR #5) · #5 quality gate ✅ (rules **proven on emulator**
-    — 15 rules tests pass; 74 unit tests; lint; merged). **All 5 POC DoD items MET (5/5).**
-    Only remaining prudence step = a live browser E2E run (observer-owned; writes to their
-    live Firebase) — not a numbered DoD criterion.
-- **Last cycle:** Cycle 4 ✅ — hardening: made the emulator-gated Firestore rules suite
-  actually run (fixed Jest+undici `ReadableStream` via server `jest.config.js`/`jest.setup.js`),
-  15 rules tests pass; removed dead `AddItemForm` (PR #6); POC DoD check (all 5 met).
-  Cycle 3 (insurance export, PR #5) merged `8fcdfcc`; cleanup (PR #6) merged `2ada691`.
-- **Loop status:** ▶️ RUNNING — observer resumed `/loop` 2026-06-13. **POC DoD now met →
-  per the loop stop conditions, the team stops & summarizes after the cycle-4 hardening PR
-  merges.** Resume only on new observer direction.
-- **Active sprint:** Cycle 4 hardening PR (rules-test infra + DoD check docs) — open/merging.
-- **Next action:** open the cycle-4 PR (server `jest.config.js`/`jest.setup.js` + these doc
-  updates), have `code-reviewer` merge, then STOP & summarize to the observer. The live
-  browser E2E verify is the only open item and is the observer's call (manual run, or
-  authorize a Playwright E2E that would create test data in the live project).
-- **Carried follow-ups (post-POC, only on observer direction):**
-  - Live browser E2E verify (sign up → add camera w/ photo → total → export) against the
-    real project. Server↔live-Firestore already verified (admin read OK 2026-06-13).
-  - Optional: payload-shape normalization refactor (cosmetic; see BACKLOG), client polish
-    (validation/error states/responsive), rules test wired into CI.
+- **Product:** **PIVOTED 2026-06-13.** Was "Vault" (a collection ledger + insurance PDF) — the
+  observer rejected it as a CRUD/spreadsheet-replacement with no real problem solved. New
+  thesis: a **market-aware collection** for vintage camera/lens collectors — a *living,
+  comp-backed valuation* (what's it worth today) + a *"good buy?" deal check*, riding a
+  **crowd-sourced sales dataset** (the moat). Insurance export survives as a byproduct of
+  accurate values, not the headline. See **ADR-0006** + rewritten `PRODUCT_BRIEF.md`.
+  Beachhead unchanged: vintage cameras/lenses (market up 50–200% since 2019). Why now: there
+  is no CardLadder/Discogs-equivalent *price intelligence* tool for cameras.
+- **🎯 MILESTONE — Pivot POC** (PM to set a fresh, measurable DoD + deadline in the brief).
+  **Proposed new POC DoD** (PM finalizing): (1) computed comp-backed estimate+range on add
+  (no manual value), (2) living portfolio total, (3) deal-check verdict, (4) crowd "log a
+  sale" loop shifts estimates, (5) insurance export shows comp-backed evidence, (6) quality
+  gate (per-user item rules intact + `comps` rules tested + valuation/deal-check unit-tested +
+  lint + reviewer-merged).
+- **Substrate kept (cycles 1–4, on `main` @ `8fcdfcc`):** Firebase Auth + route guard;
+  per-user `users/{uid}/items` model + proven security rules (15 emulator tests); add-item
+  modal + gallery + total; insurance export end-to-end; 74 unit tests; lint gate.
+- **Loop status:** ▶️ RUNNING — observer steered the pivot 2026-06-13 (chose "Both:
+  valuation+deal" and "crowd-sourced comp DB"). Executing **Step 0 (repositioning)** now.
+- **Active sprint:** Step 0 — rewrite `PRODUCT_BRIEF.md` (PM), ADR-0006 (CEO, done), new DoD +
+  backlog + seed plan (PM), valuation/deal-check/log-a-sale UX spec (designer). Branch:
+  `chore/pivot-market-intelligence`.
+- **Next action:** finish Step 0 docs → PR → `code-reviewer` merges → then build cycle 5
+  (backend valuation engine + comps + seed; frontend computed values + deal-check + log-a-sale;
+  qa). See approved plan + `PRODUCT_BRIEF.md`.
 - Each cycle: branch off `main` → PR → `code-reviewer` merges.
 - **Active teammates:** none (cycle-1 team stood down)
 - **Git trunk:** `main` established on remote (at bootstrap commit) and set as default;
