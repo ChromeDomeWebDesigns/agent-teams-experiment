@@ -471,7 +471,7 @@ high, sampleSize }`.
 {
   "make": "Leica",
   "model": "M3",
-  "modelKey": "leica_m3",
+  "modelKey": "leica-m3",
   "condition": "Excellent",
   "salePrice": 1050.00,
   "saleDate": "2026-05-20",
