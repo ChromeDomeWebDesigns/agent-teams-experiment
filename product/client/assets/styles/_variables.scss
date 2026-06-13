@@ -22,3 +22,14 @@ $font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
   'Helvetica Neue', Arial, sans-serif;
 
 $border-radius: 6px;
+
+// Valuation / semantic colors
+$color-under-market: #16a34a; // green-600 — "under market" / good deal
+$color-at-market: #d97706; // amber-600 — "at market" / fair
+$color-over-market: #dc2626; // red-600   — "over market" / avoid
+$color-low-conf: #6b7280; // same as $color-text-muted — low confidence
+$color-low-conf-bg: #f3f4f6; // light gray bg for low-confidence banner
+
+// Range badge
+$color-range-bg: #f0fdf4; // green-50 tint for range pill background
+$color-range-border: #bbf7d0; // green-200

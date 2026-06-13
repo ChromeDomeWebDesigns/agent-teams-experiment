@@ -11,6 +11,8 @@ const consola = require('consola')
 
 const { health } = require('./routes/health')
 const { exportInsuranceDoc } = require('./routes/export')
+const { getValuation } = require('./routes/valuation')
+const { dealCheck } = require('./routes/dealCheck')
 const { verifyFirebaseToken } = require('./middleware/verifyFirebaseToken')
 
 require('./lib/firebase')
@@ -34,6 +36,16 @@ app.use('/api/health', healthRouter)
 const exportRouter = express.Router()
 exportRouter.get('/', verifyFirebaseToken, exportInsuranceDoc)
 app.use('/api/export', exportRouter)
+
+// Valuation route — auth-guarded; returns comp-backed estimate for a make/model/condition
+const valuationRouter = express.Router()
+valuationRouter.get('/', verifyFirebaseToken, getValuation)
+app.use('/api/valuation', valuationRouter)
+
+// Deal-check route — auth-guarded; returns valuation + verdict for an asking price
+const dealCheckRouter = express.Router()
+dealCheckRouter.post('/', verifyFirebaseToken, dealCheck)
+app.use('/api/deal-check', dealCheckRouter)
 
 const PORT = process.env.PORT || 8080
 app.listen(PORT, () => {

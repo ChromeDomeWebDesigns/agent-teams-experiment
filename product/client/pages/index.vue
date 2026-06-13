@@ -9,12 +9,18 @@
         <button class="btn btn--primary" @click="showAddItem = true">
           + Add Item
         </button>
+        <button class="btn btn--ghost" @click="showLogSale = true">
+          + Log a Sale
+        </button>
+        <nuxt-link to="/deal-check" class="btn btn--ghost">
+          Deal Check
+        </nuxt-link>
         <button
           class="btn btn--ghost"
           :disabled="!items.length"
           @click="handleExport"
         >
-          Export for Insurance
+          Export
         </button>
         <button class="btn btn--ghost" @click="handleSignOut">Sign Out</button>
       </div>
@@ -22,10 +28,11 @@
 
     <section class="page-items__summary">
       <div class="summary-card">
-        <span class="summary-card__label">Total Collection Value</span>
+        <span class="summary-card__label">Market Value (comp-backed)</span>
         <span class="summary-card__value"
           >${{ totalValue.toLocaleString() }}</span
         >
+        <span class="summary-card__sub">{{ valuationSubLabel }}</span>
       </div>
       <div class="summary-card">
         <span class="summary-card__label">Items</span>
@@ -36,7 +43,7 @@
     <section class="page-items__gallery">
       <LoadingSpinner v-if="loading" />
       <p v-else-if="!items.length" class="page-items__empty">
-        No items yet — add your first piece of gear.
+        No items yet — add your first camera or lens.
       </p>
       <div v-else class="item-grid">
         <ItemCard v-for="item in items" :key="item.id" :item="item" />
@@ -48,6 +55,8 @@
       @close="showAddItem = false"
       @saved="showAddItem = false"
     />
+
+    <LogSaleModal v-if="showLogSale" @close="showLogSale = false" />
   </main>
 </template>
 
@@ -60,6 +69,7 @@ export default {
   data() {
     return {
       showAddItem: false,
+      showLogSale: false,
     }
   },
 
@@ -67,6 +77,25 @@ export default {
     ...mapState('items', ['items', 'loading']),
     ...mapState('users', ['currentUser']),
     ...mapGetters('items', ['totalValue']),
+
+    valuationSubLabel() {
+      const total = this.items.length
+      if (total === 0) return 'Estimated from recent sales'
+      const valued = this.items.filter((item) => {
+        const eff =
+          item.userOverrideValue != null
+            ? item.userOverrideValue
+            : item.estimatedValue?.estimate ?? null
+        return eff != null
+      }).length
+      const awaiting = total - valued
+      if (awaiting === 0) {
+        return `Estimated from recent sales · ${valued} item${
+          valued === 1 ? '' : 's'
+        } valued`
+      }
+      return `${valued} of ${total} items valued · ${awaiting} awaiting data`
+    },
   },
 
   async created() {
@@ -77,7 +106,7 @@ export default {
     async handleExport() {
       try {
         await this.$store.dispatch('items/exportInsurance')
-      } catch (err) {
+      } catch (_err) {
         // error already logged in store action
       }
     },
@@ -100,6 +129,8 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: $spacing-sm;
     margin-bottom: $spacing-xl;
   }
 
@@ -122,6 +153,7 @@ export default {
   &__actions {
     display: flex;
     gap: $spacing-sm;
+    flex-wrap: wrap;
   }
 
   &__summary {
@@ -162,6 +194,11 @@ export default {
     font-weight: 700;
     color: $color-primary;
   }
+
+  &__sub {
+    font-size: 0.75rem;
+    color: $color-text-muted;
+  }
 }
 
 .item-grid {
@@ -177,10 +214,18 @@ export default {
   font-weight: 600;
   cursor: pointer;
   border: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
   transition: opacity 0.15s;
 
   &:hover {
     opacity: 0.85;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   &--primary {

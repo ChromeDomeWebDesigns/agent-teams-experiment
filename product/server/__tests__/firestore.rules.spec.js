@@ -53,55 +53,57 @@ describeOrSkip('firestore.rules', () => {
     await testEnv.clearFirestore()
   })
 
-  // Seed a known item owned by userId directly (bypasses rules).
+  // Seed a known item under the per-user subcollection (bypasses rules).
   async function seedItem(itemId, userId) {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await ctx
         .firestore()
+        .collection('users')
+        .doc(userId)
         .collection('items')
         .doc(itemId)
-        .set({ userId, make: 'Leica', model: 'M6', currentValue: 1500 })
+        .set({ userId, make: 'Leica', model: 'M6', condition: 'Excellent' })
     })
   }
 
   /* ------------------------------------------------------------------
-   * items collection
+   * users/{userId}/items subcollection
    * ------------------------------------------------------------------ */
 
   describe('items — create', () => {
-    it('allows an authed user to create their own item', async () => {
+    it('allows an authed user to create an item in their own subcollection', async () => {
       const db = testEnv.authenticatedContext('uid-alice').firestore()
       await assertSucceeds(
-        db.collection('items').doc('item-1').set({
-          userId: 'uid-alice',
-          make: 'Leica',
-          model: 'M6',
-          currentValue: 1500,
-        })
+        db
+          .collection('users')
+          .doc('uid-alice')
+          .collection('items')
+          .doc('item-1')
+          .set({ make: 'Leica', model: 'M6', condition: 'Excellent' })
       )
     })
 
-    it('denies create when userId != auth.uid', async () => {
+    it("denies create in another user's subcollection", async () => {
       const db = testEnv.authenticatedContext('uid-alice').firestore()
       await assertFails(
-        db.collection('items').doc('item-2').set({
-          userId: 'uid-bob',
-          make: 'Nikon',
-          model: 'F3',
-          currentValue: 800,
-        })
+        db
+          .collection('users')
+          .doc('uid-bob')
+          .collection('items')
+          .doc('item-2')
+          .set({ make: 'Nikon', model: 'F3', condition: 'Good' })
       )
     })
 
     it('denies create for unauthenticated callers', async () => {
       const db = testEnv.unauthenticatedContext().firestore()
       await assertFails(
-        db.collection('items').doc('item-3').set({
-          userId: 'uid-alice',
-          make: 'Leica',
-          model: 'M6',
-          currentValue: 1500,
-        })
+        db
+          .collection('users')
+          .doc('uid-alice')
+          .collection('items')
+          .doc('item-3')
+          .set({ make: 'Leica', model: 'M6', condition: 'Excellent' })
       )
     })
   })
@@ -111,17 +113,38 @@ describeOrSkip('firestore.rules', () => {
 
     it('allows the owner to read their own item', async () => {
       const db = testEnv.authenticatedContext('uid-alice').firestore()
-      await assertSucceeds(db.collection('items').doc('item-alice').get())
+      await assertSucceeds(
+        db
+          .collection('users')
+          .doc('uid-alice')
+          .collection('items')
+          .doc('item-alice')
+          .get()
+      )
     })
 
     it("denies a different user from reading another user's item", async () => {
       const db = testEnv.authenticatedContext('uid-bob').firestore()
-      await assertFails(db.collection('items').doc('item-alice').get())
+      await assertFails(
+        db
+          .collection('users')
+          .doc('uid-alice')
+          .collection('items')
+          .doc('item-alice')
+          .get()
+      )
     })
 
     it('denies unauthenticated read', async () => {
       const db = testEnv.unauthenticatedContext().firestore()
-      await assertFails(db.collection('items').doc('item-alice').get())
+      await assertFails(
+        db
+          .collection('users')
+          .doc('uid-alice')
+          .collection('items')
+          .doc('item-alice')
+          .get()
+      )
     })
   })
 
@@ -131,14 +154,24 @@ describeOrSkip('firestore.rules', () => {
     it('allows the owner to update their own item', async () => {
       const db = testEnv.authenticatedContext('uid-alice').firestore()
       await assertSucceeds(
-        db.collection('items').doc('item-alice').update({ currentValue: 2000 })
+        db
+          .collection('users')
+          .doc('uid-alice')
+          .collection('items')
+          .doc('item-alice')
+          .update({ condition: 'Good' })
       )
     })
 
     it("denies a different user from updating another user's item", async () => {
       const db = testEnv.authenticatedContext('uid-bob').firestore()
       await assertFails(
-        db.collection('items').doc('item-alice').update({ currentValue: 99 })
+        db
+          .collection('users')
+          .doc('uid-alice')
+          .collection('items')
+          .doc('item-alice')
+          .update({ condition: 'Poor' })
       )
     })
   })
@@ -148,12 +181,26 @@ describeOrSkip('firestore.rules', () => {
 
     it('allows the owner to delete their own item', async () => {
       const db = testEnv.authenticatedContext('uid-alice').firestore()
-      await assertSucceeds(db.collection('items').doc('item-alice').delete())
+      await assertSucceeds(
+        db
+          .collection('users')
+          .doc('uid-alice')
+          .collection('items')
+          .doc('item-alice')
+          .delete()
+      )
     })
 
     it("denies a different user from deleting another user's item", async () => {
       const db = testEnv.authenticatedContext('uid-bob').firestore()
-      await assertFails(db.collection('items').doc('item-alice').delete())
+      await assertFails(
+        db
+          .collection('users')
+          .doc('uid-alice')
+          .collection('items')
+          .doc('item-alice')
+          .delete()
+      )
     })
   })
 
@@ -209,6 +256,165 @@ describeOrSkip('firestore.rules', () => {
     it('denies delete on logs', async () => {
       const db = testEnv.authenticatedContext('uid-alice').firestore()
       await assertFails(db.collection('logs').doc('log-seed').delete())
+    })
+  })
+
+  /* ------------------------------------------------------------------
+   * comps collection — crowd-sourced sales dataset
+   * ------------------------------------------------------------------ */
+
+  /** Minimal valid user-submitted comp payload. */
+  function validComp(uid) {
+    return {
+      contributedBy: uid,
+      status: 'user-submitted',
+      make: 'Leica',
+      model: 'M3',
+      modelKey: 'leica-m3',
+      condition: 'Good',
+      salePrice: 1000,
+      saleDate: '2026-05-01',
+    }
+  }
+
+  /** Seed a comp directly (bypassing rules) so read/update/delete tests have data. */
+  async function seedComp(compId, data) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await ctx.firestore().collection('comps').doc(compId).set(data)
+    })
+  }
+
+  describe('comps — read', () => {
+    beforeEach(() =>
+      seedComp('comp-seed', {
+        contributedBy: 'uid-alice',
+        status: 'seed',
+        make: 'Leica',
+        model: 'M3',
+        modelKey: 'leica-m3',
+        condition: 'Good',
+        salePrice: 1000,
+        saleDate: '2025-01-01',
+      })
+    )
+
+    it('allows an authenticated user to read a comp', async () => {
+      const db = testEnv.authenticatedContext('uid-alice').firestore()
+      await assertSucceeds(db.collection('comps').doc('comp-seed').get())
+    })
+
+    it('allows a different authenticated user to read a comp', async () => {
+      const db = testEnv.authenticatedContext('uid-bob').firestore()
+      await assertSucceeds(db.collection('comps').doc('comp-seed').get())
+    })
+
+    it('denies unauthenticated read', async () => {
+      const db = testEnv.unauthenticatedContext().firestore()
+      await assertFails(db.collection('comps').doc('comp-seed').get())
+    })
+  })
+
+  describe('comps — create (user-submitted)', () => {
+    it('allows an authed user to create their own user-submitted comp', async () => {
+      const db = testEnv.authenticatedContext('uid-alice').firestore()
+      await assertSucceeds(
+        db.collection('comps').doc('comp-alice').set(validComp('uid-alice'))
+      )
+    })
+
+    it('denies create when contributedBy != auth.uid', async () => {
+      const db = testEnv.authenticatedContext('uid-alice').firestore()
+      await assertFails(
+        db
+          .collection('comps')
+          .doc('comp-spoof')
+          .set({
+            ...validComp('uid-alice'),
+            contributedBy: 'uid-bob', // spoofed uid
+          })
+      )
+    })
+
+    it('denies create with status "seed" (admin-only)', async () => {
+      const db = testEnv.authenticatedContext('uid-alice').firestore()
+      await assertFails(
+        db
+          .collection('comps')
+          .doc('comp-seed-attempt')
+          .set({
+            ...validComp('uid-alice'),
+            status: 'seed',
+          })
+      )
+    })
+
+    it('denies create with status "verified" (admin-only)', async () => {
+      const db = testEnv.authenticatedContext('uid-alice').firestore()
+      await assertFails(
+        db
+          .collection('comps')
+          .doc('comp-verified-attempt')
+          .set({
+            ...validComp('uid-alice'),
+            status: 'verified',
+          })
+      )
+    })
+
+    it('denies unauthenticated create', async () => {
+      const db = testEnv.unauthenticatedContext().firestore()
+      await assertFails(
+        db.collection('comps').doc('comp-anon').set(validComp('uid-alice'))
+      )
+    })
+
+    it('denies create when required field "make" is missing', async () => {
+      const db = testEnv.authenticatedContext('uid-alice').firestore()
+      const { make, ...withoutMake } = validComp('uid-alice')
+      await assertFails(
+        db.collection('comps').doc('comp-no-make').set(withoutMake)
+      )
+    })
+
+    it('denies create when required field "salePrice" is missing', async () => {
+      const db = testEnv.authenticatedContext('uid-alice').firestore()
+      const { salePrice, ...withoutPrice } = validComp('uid-alice')
+      await assertFails(
+        db.collection('comps').doc('comp-no-price').set(withoutPrice)
+      )
+    })
+
+    it('denies create when "make" is an empty string', async () => {
+      const db = testEnv.authenticatedContext('uid-alice').firestore()
+      await assertFails(
+        db
+          .collection('comps')
+          .doc('comp-empty-make')
+          .set({ ...validComp('uid-alice'), make: '' })
+      )
+    })
+  })
+
+  describe('comps — update / delete (always denied for clients)', () => {
+    beforeEach(() => seedComp('comp-existing', validComp('uid-alice')))
+
+    it('denies update even by the contributing user', async () => {
+      const db = testEnv.authenticatedContext('uid-alice').firestore()
+      await assertFails(
+        db.collection('comps').doc('comp-existing').update({ salePrice: 9999 })
+      )
+    })
+
+    it('denies delete even by the contributing user', async () => {
+      const db = testEnv.authenticatedContext('uid-alice').firestore()
+      await assertFails(db.collection('comps').doc('comp-existing').delete())
+    })
+
+    it('denies update by a different user', async () => {
+      const db = testEnv.authenticatedContext('uid-bob').firestore()
+      await assertFails(
+        db.collection('comps').doc('comp-existing').update({ salePrice: 1 })
+      )
     })
   })
 })
