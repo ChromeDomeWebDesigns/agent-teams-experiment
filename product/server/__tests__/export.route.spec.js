@@ -69,13 +69,20 @@ describe('exportInsuranceDoc — happy path', () => {
       docs: [
         {
           id: '1',
-          data: () => ({ make: 'Leica', currentValue: 100, userId: 'u1' }),
+          data: () => ({
+            make: 'Leica',
+            estimatedValue: { estimate: 100 },
+            userId: 'u1',
+          }),
         },
       ],
     })
 
-    const mockWhere = jest.fn().mockReturnValue({ get: mockGet })
-    const mockCollection = jest.fn().mockReturnValue({ where: mockWhere })
+    const mockItemsCollection = jest.fn().mockReturnValue({ get: mockGet })
+    const mockDoc = jest
+      .fn()
+      .mockReturnValue({ collection: mockItemsCollection })
+    const mockCollection = jest.fn().mockReturnValue({ doc: mockDoc })
 
     jest.doMock('../lib/firebase', () => ({
       db: { collection: mockCollection },
@@ -129,8 +136,11 @@ describe('exportInsuranceDoc — error path', () => {
     const mockGet = jest
       .fn()
       .mockRejectedValue(new Error('firestore unavailable'))
-    const mockWhere = jest.fn().mockReturnValue({ get: mockGet })
-    const mockCollection = jest.fn().mockReturnValue({ where: mockWhere })
+    const mockItemsCollection = jest.fn().mockReturnValue({ get: mockGet })
+    const mockDoc = jest
+      .fn()
+      .mockReturnValue({ collection: mockItemsCollection })
+    const mockCollection = jest.fn().mockReturnValue({ doc: mockDoc })
 
     jest.doMock('../lib/firebase', () => ({
       db: { collection: mockCollection },

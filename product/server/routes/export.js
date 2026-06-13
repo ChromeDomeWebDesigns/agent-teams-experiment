@@ -12,8 +12,9 @@ async function exportInsuranceDoc(req, res) {
     }
 
     const snap = await db
+      .collection('users')
+      .doc(req.uid)
       .collection('items')
-      .where('userId', '==', req.uid)
       .get()
 
     const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
