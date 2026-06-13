@@ -51,8 +51,6 @@ import { mapState } from 'vuex'
 export default {
   name: 'LoginPage',
 
-  meta: [{ guestOnly: true }],
-
   data() {
     return {
       form: {
