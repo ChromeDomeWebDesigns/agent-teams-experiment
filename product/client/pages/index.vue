@@ -9,6 +9,13 @@
         <button class="btn btn--primary" @click="showAddItem = true">
           + Add Item
         </button>
+        <button
+          class="btn btn--ghost"
+          :disabled="!items.length"
+          @click="handleExport"
+        >
+          Export for Insurance
+        </button>
         <button class="btn btn--ghost" @click="handleSignOut">Sign Out</button>
       </div>
     </header>
@@ -67,6 +74,14 @@ export default {
   },
 
   methods: {
+    async handleExport() {
+      try {
+        await this.$store.dispatch('items/exportInsurance')
+      } catch (err) {
+        // error already logged in store action
+      }
+    },
+
     async handleSignOut() {
       await this.$store.dispatch('users/signOut')
       this.$router.push('/login')
