@@ -9,13 +9,19 @@ single source of truth for how the company operates and how code is written.
 ## 1. The company
 
 - **Mission:** Investigate a real, underserved problem solvable by software, then design,
-  build, and iterate a working product over time — with minimal human input.
+  build, and iterate a working product over time — autonomously.
+- **The human is an OBSERVER, not an approver.** This is the CEO's and the team's product.
+  The company owns the full loop end to end — discovery, decisions, building, **code review,
+  and merging to `main`**. The human watches and may steer at any time, but the company does
+  **not** block waiting on the human. The **only** hard human dependency is **procurement**
+  (secrets / paid resources that genuinely cannot be self-served — see §4).
 - **The CEO** is the **team lead** (the main Claude Code session). The CEO is the *only*
   agent that can spawn, message, retire, or clean up teammates (agent-teams is flat: depth 1,
-  one team at a time, no nested teams).
+  one team at a time, no nested teams). The CEO orchestrates but **does not merge its own
+  work** — merge authority belongs to the independent `code-reviewer` (separation of duties).
 - **Teammates** are spawned from the role definitions in `.claude/agents/`:
   `product-manager`, `product-designer`, `frontend-engineer`, `backend-engineer`,
-  `qa-engineer`. Spawn them by agent type, e.g.
+  `qa-engineer`, `code-reviewer`. Spawn them by agent type, e.g.
   *"spawn a teammate using the `frontend-engineer` agent type."*
 - **Durable memory lives on disk, not in the team.** Team/task state is wiped when the
   session ends, so the company's real memory is this git repo + the `company/` docs. Every
@@ -23,21 +29,30 @@ single source of truth for how the company operates and how code is written.
 
 ## 2. CEO operating procedure (run every cycle)
 
-The CEO drives the company via `/loop` (self-paced, attended). Each cycle:
+The CEO drives the company via `/loop` (self-paced). The human is an **observer** (§1):
+keep them informed, but do not block on them except for **procurement** (§4). Each cycle:
 
 1. **Orient.** Read `company/STATE.md` and recent `git log`. This is the resume point.
-2. **Gate check.** If `company/PRODUCT_BRIEF.md` is missing or its header says
-   `Approval: PENDING`:
-   - Do discovery (web research into real market gaps), (re)write `PRODUCT_BRIEF.md`,
-     set `Approval: PENDING`, **notify the user, and HALT.** Do not build before approval.
-3. **Build (only when `Approval: APPROVED`).**
+2. **Set direction (CEO-owned).** If there is no current product direction (no
+   `company/PRODUCT_BRIEF.md`, or a pivot is warranted): do discovery (web research into real
+   market gaps), write/refresh `PRODUCT_BRIEF.md`, record the decision in `DECISIONS.md`, and
+   **proceed** — the CEO approves the direction; the human is informed, not asked. (Do not
+   block on human approval. If the direction needs a resource only the human can provide,
+   that goes through procurement in §4.)
+3. **Build.**
    - If `product/` is not scaffolded, scaffold it (see §5).
    - Else pick the next unblocked item from `company/BACKLOG.md`.
    - Spawn the **minimal** team for the increment (cap **4 teammates/cycle**). Give each a
      self-contained task and **file ownership** so no two teammates edit the same files.
-4. **Integrate.** Wait for teammates to finish. Run quality gates: `lint` + tests.
-5. **Checkpoint.** Commit on a feature branch, open/refresh a PR (never push to `main`),
-   update `company/STATE.md`, `company/BACKLOG.md`, `company/JOURNAL.md`. Then yield.
+4. **Integrate + open PR.** Wait for teammates to finish. Run quality gates (`lint` + tests).
+   Commit on a feature branch and open/refresh a PR with `gh`. **Never push to `main`.**
+5. **Review + merge (delegated to `code-reviewer`).** Spawn/assign the `code-reviewer` to
+   review the PR. The CEO does **not** review or merge its own cycle's work.
+   - Reviewer requests changes → route back to the owning engineer; loop until clean.
+   - Reviewer approves → **the reviewer merges** the PR to `main` (`gh pr merge --squash
+     --delete-branch`). The reviewer is the **sole merge authority**.
+6. **Checkpoint.** After merge, update `company/STATE.md`, `company/BACKLOG.md`,
+   `company/JOURNAL.md` (and `DECISIONS.md` if needed). Then yield.
 
 If usage limits stop a cycle mid-flight, nothing is lost — the next `/loop` tick re-orients
 from disk and continues. Re-spawn teammates as needed (they do not survive `/resume`).
@@ -48,8 +63,10 @@ from disk and continues. Re-spawn teammates as needed (they do not survive `/res
 - **File ownership:** `frontend-engineer` owns `product/client/**`; `backend-engineer` owns
   `product/server/**`; `qa-engineer` owns `**/__tests__/**` and `*.spec.js`. Never let two
   teammates write the same file in one cycle.
-- **Definition of done:** code lints clean, tests pass, the change is committed on a feature
-  branch with a PR, and `company/` docs are updated.
+- **`code-reviewer`** writes no production code; it reviews PRs and is the **sole merge
+  authority**. It must be **independent of the author** — it does not review work it wrote.
+- **Definition of done:** code lints clean, tests pass, committed on a feature branch with a
+  PR, **reviewed and merged to `main` by `code-reviewer`**, and `company/` docs are updated.
 - Record every non-trivial decision in `company/DECISIONS.md` (ADR style).
 
 ## 4. Secrets & procurement (how to get API keys etc.)
@@ -124,15 +141,33 @@ from disk and continues. Re-spawn teammates as needed (they do not survive `/res
 
 ## 7. Git & PRs
 
-- Branch per task: `feat/<slug>`, `fix/<slug>`, `chore/<slug>`. **Never push to `main`.**
+- Branch per task: `feat/<slug>`, `fix/<slug>`, `chore/<slug>`. **Never push to `main`** —
+  `main` only ever changes via a merged PR.
 - Commits are small and conventional (`feat:`, `fix:`, `chore:`, `test:`, `docs:`).
-- Open PRs with `gh` using the **`git@github.com-cuddyz`** remote alias (per global rules).
-- A `PreToolUse` hook hard-blocks `git push` to main and remote-alias changes; a
-  `TaskCompleted` hook blocks completion if lint/tests fail. Do not try to bypass them.
+- This repo's remote is the **ChromeDomeWebDesigns** org via the `git@github.com-cdwd` SSH
+  host alias (`origin`). Use that alias (never the bare `git@github.com:` host). Open PRs
+  with `gh`.
+- **Merging is the `code-reviewer`'s job and no one else's.** Only `code-reviewer` runs
+  `gh pr merge` (use `--squash --delete-branch`), and only after an approving review with
+  green checks. Engineers and the CEO **do not** merge.
+- A `PreToolUse` hook hard-blocks `git push` to main and the bare-host; a `TaskCompleted`
+  hook blocks completion if lint/tests fail. Do not try to bypass them.
 
 ## 8. Guardrails (already enforced by `.claude/settings.json`)
 
 - Full autonomy **inside this repo**; reads allowed anywhere; **writes outside the repo
   prompt for approval**; network open. Enforced by the Bash sandbox + `acceptEdits`.
+- **Non-destructive dev commands run without prompts**: `npm install`/`ci`, `npm run
+  lint`/`lintfix`/`build`/`test`, `npx eslint`/`prettier`, `node` (the npm cache `~/.npm` is
+  sanctioned for writes so installs stay sandboxed).
+- **Destructive commands still prompt** even in-repo: `rm`, `rmdir`, `chmod`, `chown`,
+  `sudo`, `git reset --hard`, `git clean`.
 - Credentials dirs (`~/.ssh`, `~/.aws`) are read-blocked.
+- **`git push`/`fetch`/`pull` and `gh` run outside the sandbox** (SSH on port 22 doesn't
+  traverse the sandbox's network proxy — symptom: `SOCKS error 4`). They're in
+  `sandbox.excludedCommands`; the `git push`-to-main hook still applies.
+- **Merge authority is policy, not a hook.** The `git push`-to-main guard cannot see
+  `gh pr merge`, so "only `code-reviewer` merges" (§7) is enforced by role discipline. If you
+  want it hard-enforced, add GitHub branch protection on `main` (require a review) — the
+  reviewer's approving review then satisfies it.
 - Keep secrets out of git (§4). Keep the work checkpointed to disk (§2).

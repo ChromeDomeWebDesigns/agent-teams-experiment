@@ -8,7 +8,35 @@
       "WebSearch",
       "Bash(gh pr *)",
       "Bash(gh repo view*)",
-      "Bash(gh issue *)"
+      "Bash(gh issue *)",
+      "Bash(git push*)",
+      "Bash(git fetch*)",
+      "Bash(git pull*)",
+      "Bash(npm install)",
+      "Bash(npm install *)",
+      "Bash(npm i)",
+      "Bash(npm i *)",
+      "Bash(npm ci)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run lintfix)",
+      "Bash(npm run build)",
+      "Bash(npm run test*)",
+      "Bash(npm test)",
+      "Bash(npm --prefix * run lint)",
+      "Bash(npm --prefix * test)",
+      "Bash(npx eslint*)",
+      "Bash(npx prettier*)",
+      "Bash(node *)"
+    ],
+    "ask": [
+      "Bash(rm *)",
+      "Bash(rmdir *)",
+      "Bash(chmod *)",
+      "Bash(chown *)",
+      "Bash(sudo *)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean *)"
     ],
     "deny": [
       "Read(//Users/cuddy/.ssh/**)",
@@ -19,11 +47,19 @@
     "enabled": true,
     "autoAllowBashIfSandboxed": true,
     "allowUnsandboxedCommands": true,
-    "excludedCommands": ["gh *"],
+    "excludedCommands": [
+      "gh *",
+      "git push*",
+      "git fetch*",
+      "git pull*",
+      "git ls-remote*",
+      "git clone*"
+    ],
     "network": {
       "allowedDomains": ["*"]
     },
     "filesystem": {
+      "allowWrite": ["~/.npm"],
       "denyRead": ["~/.ssh", "~/.aws"]
     }
   },

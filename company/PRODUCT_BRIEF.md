@@ -6,30 +6,81 @@
   human. The human flips it to APPROVED (and may edit) to authorize building.
 -->
 
-**Approval: PENDING**
-**Approved by:** —
-**Date:** —
+**Approval: APPROVED**
+**Approved by:** zcuddy (human)
+**Date:** 2026-06-12
+**Working name:** Vault (placeholder — rename welcome)
+**Locked beachhead:** Vintage cameras & lenses (data model stays category-extensible)
 
 ## Problem
-_What real, underserved problem are we solving? Who has it and how painful is it?_
+Serious hobby collectors track high-value collections in spreadsheets, photos scattered in
+their camera roll, and forum posts. This breaks down in two moments that matter most:
+1. **Insurance / loss.** After theft, fire, or damage, collectors can't produce the
+   documented proof (itemized list, photos, condition, value, provenance) that insurers
+   require to pay a claim.
+2. **Valuation drift.** Collection value changes over time; spreadsheets don't track value
+   history, so collectors don't actually know what they own or what it's worth.
 
 ## Market gap / why now
-_Evidence this is a genuine gap (with sources from discovery research)._
+Discovery (7 web searches) consistently surfaced collectors as an **underserved** segment
+needing "inventory management tailored to their hobbies — cataloging, valuation tracking,
+insurance documentation, and trading facilitation." Crucially, the *obvious* adjacent gaps
+turned out already served, which is what makes this one stand out:
+- Small-nonprofit volunteer/donation tools — **served** (POINT, Timecounts, Wave; free tiers).
+- Small food-business HACCP/temperature logging — **served** (FoodDocs, Zip HACCP, SafetyCulture).
+- Horizontal solo-service CRM/scheduling — **crowded** (Jobber/Housecall et al., the very
+  "bloated/expensive" tools people complain about).
+
+The **long tail of collectible categories** is the opposite: the biggest categories have
+apps (cards → CardLadder/Collectr; vinyl → Discogs; LEGO → BrickLink), but passionate niche
+categories (vintage cameras & lenses, film/audio gear, fountain pens, etc.) live in
+spreadsheets. The wedge competitors miss: **insurance-ready documentation** + **valuation
+history**, not just a list.
 
 ## Target user
-_The specific first user/segment._
+**Beachhead (recommended): vintage camera & lens collectors.** Passionate, high per-item
+value (→ real insurance relevance), highly reachable in active online communities
+(r/AnalogCommunity, forums, FB groups), and currently spreadsheet-bound with no dedicated
+tool. Data model stays **category-extensible** so we can expand to adjacent niches later.
+> ⚠️ Beachhead choice is the main strategic call for your review — see "Open question."
 
 ## Proposed solution (v1 thesis)
-_The smallest product that validates the thesis._
+The simplest way for a collector to **catalog, value, and insure** a collection.
+v1 = a focused web app where a logged-in user can:
+- Add items with photos, category-specific fields (make/model/serial/condition/notes),
+  purchase price + date, and a manually-entered current value.
+- Track **valuation history** per item (a timestamped value log) and see total collection value.
+- Generate an **insurance-ready export** (PDF/printable): itemized list with photos, values,
+  totals, and a generated date — the artifact you hand an insurer or adjuster.
 
 ## Why this stack fits
-_How Nuxt 2 client + Express server + Firestore serves v1._
+- **Firestore** is ideal: per-user `collections/items` documents, each with a sub-collection
+  of timestamped `valuations`; real-time updates; no relational/analytical queries needed.
+- **Firebase Storage** holds item photos. **Firebase Auth** for sign-in.
+- **Nuxt 2 SPA** for the catalog/gallery UI; **Express** for server-side concerns (auth'd
+  PDF export generation, future price-data integrations) via the Admin SDK.
+- No paid third-party APIs required for v1 (valuation is manual; automated price feeds are a
+  deliberate Phase-2 deferral).
 
-## Success criteria
-_How we'll know v1 works._
+## Success criteria (v1)
+- A collector can add 20 items with photos in one sitting without friction.
+- They can produce an insurance-ready PDF of their collection.
+- **Validation target:** 5–10 collectors from one community use it on their real collection
+  and ≥3 say they'd keep using it / it beats their spreadsheet. (Qualitative, not revenue.)
 
 ## Out of scope (for v1)
-_Explicitly deferred._
+- Automated/market price feeds, eBay/sold-comp integrations.
+- Trading/marketplace, social features, multi-user/shared collections.
+- Mobile native app (responsive web only), payments/subscriptions.
 
 ## Required resources / procurement
-_External accounts, APIs, or keys needed (also mirror into company/PROCUREMENT.md)._
+- **A Firebase project** (free Spark tier is fine for v1) — provides the client config
+  (`FIREBASE_*`) and a server **service-account JSON** (`FIREBASE_SERVICE_ACCOUNT_PATH`,
+  kept outside the repo). Logged in `company/PROCUREMENT.md`.
+- Nothing else for v1. (Domain/hosting deferred until there's something to ship.)
+
+## Open question for the human (please weigh in at approval)
+1. **Beachhead category** — go with vintage cameras/lenses (recommended: underserved +
+   reachable), or do you prefer a bigger-but-more-competitive category (e.g., trading cards),
+   or a different collectible you have access to a community for?
+2. **Working name** — keep "Vault" placeholder or set your own?
