@@ -2,6 +2,15 @@
 
 > Newest entry at top. One short entry per cycle: what shipped, decisions, blockers, next.
 
+## Charter update — autonomous governance (2026-06-12)
+- Owner set the model: **human is an observer**; the CEO + team own the full loop including
+  code review and merge. Added a new **`code-reviewer`** agent = independent reviewer + sole
+  merge authority (`gh pr merge --squash --delete-branch`); CEO/engineers never merge.
+- Dropped the human product-approval gate (CEO owns direction). Only human touchpoint =
+  procurement. Updated CLAUDE.md (§1–3, §7, §8), WORKING_AGREEMENTS, DECISIONS (ADR-0003),
+  and added `.claude/agents/code-reviewer.md`.
+- Next: have `code-reviewer` review + merge PR #1 to put the new model on `main`.
+
 ## Cycle 1 — Scaffold (2026-06-12)
 - Spawned team `vault` with `fe` (frontend-engineer) + `be` (backend-engineer), parallel,
   separate dir ownership.
