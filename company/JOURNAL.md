@@ -2,6 +2,19 @@
 
 > Newest entry at top. One short entry per cycle: what shipped, decisions, blockers, next.
 
+## Cycle 2 merged + loop stopped (2026-06-13)
+- Cycle 2 (Firebase auth + per-user item CRUD + Firestore/Storage rules + 36 tests) reviewed
+  by the independent reviewer (safety invariant verified: no secret client-exposed; rules
+  deny cross-user) and squash-merged to `main` via **PR #3** (`c5a476c`).
+- Two process bugs fixed in-cycle: the idle-hook no longer force-loops; the TaskCompleted
+  gate now scopes to changed packages only. Stale PROCUREMENT/STATE that wrongly implied
+  "blocked on Firebase" corrected (creds verified live).
+- Checkpoint cleanup (this PR): corrected STATE/BACKLOG to reflect the merge + loop stop;
+  scoped the git-guard bare-host check to real `git` invocations (it had tripped on any text
+  merely mentioning the host). Carried follow-ups recorded for cycle 3.
+- **Observer stopped the loop after PR #3.** POC ≈ 3.5/5 — remaining: insurance export
+  (DoD #4), an `AddItemModal` test + dead-code removal, and a live verify run. Resume = `/loop`.
+
 ## PR #1 reviewed + merged — autonomous flow live (2026-06-12)
 - Independent reviewer ran the genesis review (secrets clean, both packages lint green,
   conventions/boot verified) and **squash-merged PR #1 to `main`** (`0b920a1`). The
