@@ -16,7 +16,14 @@ export default {
 
   buildModules: ['@nuxtjs/eslint-module'],
 
-  plugins: [{ src: '@/plugins/firebase', mode: 'client' }],
+  plugins: [
+    { src: '@/plugins/firebase', mode: 'client' },
+    { src: '@/plugins/auth', mode: 'client' },
+  ],
+
+  router: {
+    middleware: ['authenticated'],
+  },
 
   server: {
     port: 3000,
