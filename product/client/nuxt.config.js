@@ -1,3 +1,7 @@
+require('dotenv').config({
+  path: require('path').resolve(__dirname, '../../.env'),
+})
+
 export default {
   mode: 'spa',
   telemetry: false,
@@ -14,7 +18,11 @@ export default {
 
   components: true,
 
-  buildModules: ['@nuxtjs/eslint-module'],
+  buildModules: ['@nuxtjs/eslint-module', '@nuxtjs/style-resources'],
+
+  styleResources: {
+    scss: ['@/assets/styles/_variables.scss'],
+  },
 
   plugins: [
     { src: '@/plugins/firebase', mode: 'client' },

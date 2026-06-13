@@ -1,4 +1,8 @@
-require('dotenv').config()
+// Load the repo-root .env regardless of the process cwd, so `npm --prefix
+// product/server run dev` (cwd = product/server) still finds the single root .env.
+require('dotenv').config({
+  path: require('path').resolve(__dirname, '../../.env'),
+})
 
 const express = require('express')
 const cors = require('cors')
