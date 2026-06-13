@@ -9,6 +9,9 @@
       "Bash(gh pr *)",
       "Bash(gh repo view*)",
       "Bash(gh issue *)",
+      "Bash(git push*)",
+      "Bash(git fetch*)",
+      "Bash(git pull*)",
       "Bash(npm install)",
       "Bash(npm install *)",
       "Bash(npm i)",
@@ -44,7 +47,14 @@
     "enabled": true,
     "autoAllowBashIfSandboxed": true,
     "allowUnsandboxedCommands": true,
-    "excludedCommands": ["gh *"],
+    "excludedCommands": [
+      "gh *",
+      "git push*",
+      "git fetch*",
+      "git pull*",
+      "git ls-remote*",
+      "git clone*"
+    ],
     "network": {
       "allowedDomains": ["*"]
     },

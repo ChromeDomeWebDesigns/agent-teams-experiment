@@ -142,4 +142,7 @@ from disk and continues. Re-spawn teammates as needed (they do not survive `/res
 - **Destructive commands still prompt** even in-repo: `rm`, `rmdir`, `chmod`, `chown`,
   `sudo`, `git reset --hard`, `git clean`.
 - Credentials dirs (`~/.ssh`, `~/.aws`) are read-blocked.
+- **`git push`/`fetch`/`pull` and `gh` run outside the sandbox** (SSH on port 22 doesn't
+  traverse the sandbox's network proxy — symptom: `SOCKS error 4`). They're in
+  `sandbox.excludedCommands`; the `git push`-to-main hook still applies.
 - Keep secrets out of git (§4). Keep the work checkpointed to disk (§2).
