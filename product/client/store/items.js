@@ -15,7 +15,8 @@ import {
   getDownloadURL,
 } from 'firebase/storage'
 import { v4 as uuidv4 } from 'uuid'
-import { db } from '@/plugins/firebase'
+import { db, auth } from '@/plugins/firebase'
+import http from '@/lib/http'
 import { createLog, LOG_SEVERITIES } from '@/lib/logger'
 import { replaceUndefinedInObject } from '@/lib/utils'
 
@@ -106,6 +107,33 @@ export const actions = {
     } catch (err) {
       await createLog({
         message: 'addItem failed',
+        severity: LOG_SEVERITIES.ERROR,
+        addlData: { error: err.message },
+      })
+      throw err
+    } finally {
+      commit('SET_LOADING', false)
+    }
+  },
+  async exportInsurance({ commit, rootGetters }) {
+    const uid = rootGetters['users/uid']
+    if (!uid) throw new Error('Not authenticated')
+    commit('SET_LOADING', true)
+    try {
+      const token = await auth.currentUser.getIdToken()
+      const { data: html } = await http.get('/api/export', {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'text',
+      })
+      const win = window.open('', '_blank')
+      if (win) {
+        win.document.write(html)
+        win.document.close()
+      }
+      return html
+    } catch (err) {
+      await createLog({
+        message: 'exportInsurance failed',
         severity: LOG_SEVERITIES.ERROR,
         addlData: { error: err.message },
       })

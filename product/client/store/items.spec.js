@@ -1,6 +1,12 @@
 import Vuex from 'vuex'
 import { createLocalVue } from '@vue/test-utils'
 
+// Mock @/lib/http so exportInsurance never hits a real server
+jest.mock('@/lib/http', () => ({
+  __esModule: true,
+  default: { get: jest.fn() },
+}))
+
 // Mock firebase/firestore before importing the store
 jest.mock('firebase/firestore', () => ({
   collection: jest.fn(),
@@ -311,6 +317,85 @@ describe('store/items', () => {
         .dispatch('items/addItem', { formData: {}, photoFile: null })
         .catch(() => {})
 
+      expect(store.state.items.loading).toBe(false)
+    })
+  })
+
+  describe('exportInsurance action', () => {
+    let http
+    let firebasePlugin
+    let createLog
+
+    beforeEach(() => {
+      http = require('@/lib/http').default
+      firebasePlugin = require('@/plugins/firebase')
+      createLog = require('@/lib/logger').createLog
+
+      // Provide a fake currentUser on the mocked auth object
+      firebasePlugin.auth.currentUser = {
+        getIdToken: jest.fn().mockResolvedValue('id-token'),
+      }
+
+      // Stub window.open to return a fake popup window
+      window.open = jest.fn(() => ({
+        document: { write: jest.fn(), close: jest.fn() },
+      }))
+    })
+
+    it('throws when there is no authenticated uid', async () => {
+      const store = makeStore({ uid: null })
+      await expect(store.dispatch('items/exportInsurance')).rejects.toThrow(
+        'Not authenticated'
+      )
+    })
+
+    it('calls http.get with /api/export and an Authorization Bearer header', async () => {
+      http.get.mockResolvedValueOnce({ data: '<html>ok</html>' })
+      const store = makeStore()
+      await store.dispatch('items/exportInsurance')
+      expect(http.get).toHaveBeenCalledWith(
+        '/api/export',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer id-token',
+          }),
+        })
+      )
+    })
+
+    it('calls window.open and writes the returned html', async () => {
+      const fakeHtml = '<!doctype html><body>Leica</body>'
+      http.get.mockResolvedValueOnce({ data: fakeHtml })
+      const store = makeStore()
+      await store.dispatch('items/exportInsurance')
+      expect(window.open).toHaveBeenCalledWith('', '_blank')
+      const fakeWin = window.open.mock.results[0].value
+      expect(fakeWin.document.write).toHaveBeenCalledWith(fakeHtml)
+      expect(fakeWin.document.close).toHaveBeenCalled()
+    })
+
+    it('resets loading to false after a successful export', async () => {
+      http.get.mockResolvedValueOnce({ data: '<html></html>' })
+      const store = makeStore()
+      await store.dispatch('items/exportInsurance')
+      expect(store.state.items.loading).toBe(false)
+    })
+
+    it('calls createLog with severity ERROR and rethrows when http.get rejects', async () => {
+      http.get.mockRejectedValueOnce(new Error('network error'))
+      const store = makeStore()
+      await expect(store.dispatch('items/exportInsurance')).rejects.toThrow(
+        'network error'
+      )
+      expect(createLog).toHaveBeenCalledWith(
+        expect.objectContaining({ severity: 'ERROR' })
+      )
+    })
+
+    it('resets loading to false even when http.get rejects', async () => {
+      http.get.mockRejectedValueOnce(new Error('fail'))
+      const store = makeStore()
+      await store.dispatch('items/exportInsurance').catch(() => {})
       expect(store.state.items.loading).toBe(false)
     })
   })
