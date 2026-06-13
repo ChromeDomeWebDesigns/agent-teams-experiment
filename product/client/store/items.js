@@ -2,8 +2,6 @@ import Vue from 'vue'
 import {
   collection,
   doc,
-  query,
-  where,
   getDocs,
   setDoc,
   updateDoc,
@@ -65,11 +63,9 @@ export const actions = {
     if (!uid) return
     commit('SET_LOADING', true)
     try {
-      const q = query(
-        collection(db, 'users', uid, 'items'),
-        where('userId', '==', uid)
-      )
-      const snap = await getDocs(q)
+      // The per-user subcollection path already scopes reads to this user;
+      // no additional where() filter is needed here.
+      const snap = await getDocs(collection(db, 'users', uid, 'items'))
       const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
       commit('SET_ITEMS', items)
     } catch (err) {

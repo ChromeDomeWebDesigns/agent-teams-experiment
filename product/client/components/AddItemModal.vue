@@ -26,10 +26,14 @@
               id="make"
               v-model="form.make"
               class="form-field__input"
+              :class="{ 'form-field__input--error': fieldErrors.make }"
               type="text"
-              required
               @input="debounceFetchValuation"
+              @blur="touchField('make')"
             />
+            <p v-if="fieldErrors.make" class="form-field__error">
+              {{ fieldErrors.make }}
+            </p>
           </div>
           <div class="form-field">
             <label class="form-field__label" for="model">Model *</label>
@@ -37,10 +41,14 @@
               id="model"
               v-model="form.model"
               class="form-field__input"
+              :class="{ 'form-field__input--error': fieldErrors.model }"
               type="text"
-              required
               @input="debounceFetchValuation"
+              @blur="touchField('model')"
             />
+            <p v-if="fieldErrors.model" class="form-field__error">
+              {{ fieldErrors.model }}
+            </p>
           </div>
         </div>
 
@@ -51,8 +59,9 @@
               id="condition"
               v-model="form.condition"
               class="form-field__input"
-              required
+              :class="{ 'form-field__input--error': fieldErrors.condition }"
               @change="debounceFetchValuation"
+              @blur="touchField('condition')"
             >
               <option value="">— select —</option>
               <option value="Mint">Mint</option>
@@ -61,6 +70,9 @@
               <option value="Fair">Fair</option>
               <option value="Poor">Poor</option>
             </select>
+            <p v-if="fieldErrors.condition" class="form-field__error">
+              {{ fieldErrors.condition }}
+            </p>
           </div>
           <div class="form-field">
             <label class="form-field__label" for="serial">Serial Number</label>
@@ -150,10 +162,15 @@
               id="purchasePrice"
               v-model="form.purchasePrice"
               class="form-field__input"
+              :class="{ 'form-field__input--error': fieldErrors.purchasePrice }"
               type="number"
               min="0"
               step="0.01"
+              @blur="touchField('purchasePrice')"
             />
+            <p v-if="fieldErrors.purchasePrice" class="form-field__error">
+              {{ fieldErrors.purchasePrice }}
+            </p>
           </div>
           <div class="form-field">
             <label class="form-field__label" for="purchaseDate">
@@ -173,11 +190,15 @@
           <input
             id="photo"
             class="form-field__input form-field__input--file"
+            :class="{ 'form-field__input--error': fieldErrors.photo }"
             type="file"
             accept="image/*"
             @change="handleFileChange"
           />
           <p v-if="photoFile" class="form-field__hint">{{ photoFile.name }}</p>
+          <p v-if="fieldErrors.photo" class="form-field__error">
+            {{ fieldErrors.photo }}
+          </p>
         </div>
 
         <div class="form-field">
@@ -201,7 +222,11 @@
           >
             Cancel
           </button>
-          <button class="btn btn--primary" type="submit" :disabled="loading">
+          <button
+            class="btn btn--primary"
+            type="submit"
+            :disabled="loading || hasValidationErrors"
+          >
             <span
               v-if="loading"
               class="loading-spinner"
@@ -239,16 +264,58 @@ export default {
       // local valuation state: 'idle' | 'loading' | 'ready' | 'low-confidence' | 'no-data' | 'error'
       valuationState: 'idle',
       valuationPreview: null,
+      // tracks which fields have been interacted with (show errors only after touch)
+      touched: {},
     }
   },
 
   computed: {
     ...mapState('items', ['loading']),
+
+    fieldErrors() {
+      const errors = {}
+      if (this.touched.make && !this.form.make.trim()) {
+        errors.make = 'Make is required.'
+      }
+      if (this.touched.model && !this.form.model.trim()) {
+        errors.model = 'Model is required.'
+      }
+      if (this.touched.condition && !this.form.condition) {
+        errors.condition = 'Condition is required.'
+      }
+      if (
+        this.touched.purchasePrice &&
+        this.form.purchasePrice !== '' &&
+        Number(this.form.purchasePrice) < 0
+      ) {
+        errors.purchasePrice = 'Purchase price cannot be negative.'
+      }
+      if (this.touched.photo && !this.photoFile) {
+        errors.photo = 'At least one photo is required.'
+      }
+      return errors
+    },
+
+    hasValidationErrors() {
+      // Run full validation (without requiring touch) to gate the submit
+      if (!this.form.make.trim()) return true
+      if (!this.form.model.trim()) return true
+      if (!this.form.condition) return true
+      if (this.form.purchasePrice !== '' && Number(this.form.purchasePrice) < 0)
+        return true
+      if (!this.photoFile) return true
+      return false
+    },
   },
 
   methods: {
+    touchField(field) {
+      this.$set(this.touched, field, true)
+    },
+
     handleFileChange(e) {
       this.photoFile = e.target.files[0] || null
+      this.touchField('photo')
     },
 
     debounceFetchValuation() {
@@ -291,6 +358,13 @@ export default {
 
     async handleSubmit() {
       this.errorMessage = null
+
+      // Touch all validated fields so inline errors become visible on submit
+      ;['make', 'model', 'condition', 'purchasePrice', 'photo'].forEach((f) =>
+        this.touchField(f)
+      )
+
+      if (this.hasValidationErrors) return
 
       // If still loading valuation, wait up to 3s then proceed regardless
       if (this.valuationState === 'loading') {
@@ -457,6 +531,16 @@ export default {
   &__hint {
     font-size: 0.8rem;
     color: $color-text-muted;
+  }
+
+  &__error {
+    font-size: 0.8rem;
+    color: $color-accent;
+    margin: 0;
+  }
+
+  &__input--error {
+    border-color: $color-accent;
   }
 }
 

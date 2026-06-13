@@ -121,16 +121,9 @@ describe('store/items', () => {
   })
 
   describe('fetchItems action', () => {
-    it('queries Firestore and populates state', async () => {
-      const {
-        getDocs,
-        query,
-        where,
-        collection,
-      } = require('firebase/firestore')
+    it('queries the per-user subcollection and populates state', async () => {
+      const { getDocs, collection } = require('firebase/firestore')
       collection.mockReturnValue('items-col')
-      where.mockReturnValue('where-clause')
-      query.mockReturnValue('built-query')
       getDocs.mockResolvedValueOnce({
         docs: [
           {
@@ -155,7 +148,13 @@ describe('store/items', () => {
       const store = makeStore()
       await store.dispatch('items/fetchItems')
 
-      expect(where).toHaveBeenCalledWith('userId', '==', 'uid-test')
+      // Reads the per-user subcollection path; no redundant where() filter
+      expect(collection).toHaveBeenCalledWith(
+        expect.anything(),
+        'users',
+        'uid-test',
+        'items'
+      )
       expect(getDocs).toHaveBeenCalled()
       expect(store.state.items.items).toHaveLength(2)
       expect(store.state.items.items[0]).toMatchObject({
@@ -165,15 +164,8 @@ describe('store/items', () => {
     })
 
     it('resets loading to false after a successful fetch', async () => {
-      const {
-        getDocs,
-        query,
-        where,
-        collection,
-      } = require('firebase/firestore')
+      const { getDocs, collection } = require('firebase/firestore')
       collection.mockReturnValue('items-col')
-      where.mockReturnValue('where-clause')
-      query.mockReturnValue('built-query')
       getDocs.mockResolvedValueOnce({ docs: [] })
 
       const store = makeStore()
@@ -190,15 +182,8 @@ describe('store/items', () => {
     })
 
     it('calls createLog on error and rethrows', async () => {
-      const {
-        getDocs,
-        query,
-        where,
-        collection,
-      } = require('firebase/firestore')
+      const { getDocs, collection } = require('firebase/firestore')
       collection.mockReturnValue('items-col')
-      where.mockReturnValue('where-clause')
-      query.mockReturnValue('built-query')
       getDocs.mockRejectedValueOnce(new Error('unavailable'))
 
       const { createLog } = require('@/lib/logger')
@@ -212,15 +197,8 @@ describe('store/items', () => {
     })
 
     it('resets loading to false even when fetch throws', async () => {
-      const {
-        getDocs,
-        query,
-        where,
-        collection,
-      } = require('firebase/firestore')
+      const { getDocs, collection } = require('firebase/firestore')
       collection.mockReturnValue('items-col')
-      where.mockReturnValue('where-clause')
-      query.mockReturnValue('built-query')
       getDocs.mockRejectedValueOnce(new Error('fail'))
 
       const store = makeStore()

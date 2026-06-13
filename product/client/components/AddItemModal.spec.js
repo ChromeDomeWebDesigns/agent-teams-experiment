@@ -232,9 +232,128 @@ describe('AddItemModal component', () => {
   })
 
   // -------------------------------------------------------------------------
+  // Client-side validation
+  // -------------------------------------------------------------------------
+  describe('client-side validation', () => {
+    it('submit button is disabled initially because required fields are empty', () => {
+      const wrapper = shallowMount(AddItemModal, {
+        localVue,
+        store: makeStore(),
+      })
+      expect(
+        wrapper.find('button[type="submit"]').attributes('disabled')
+      ).toBeDefined()
+    })
+
+    it('shows make error after blur when make is empty', async () => {
+      const wrapper = shallowMount(AddItemModal, {
+        localVue,
+        store: makeStore(),
+      })
+      await wrapper.find('input#make').trigger('blur')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.vm.fieldErrors.make).toBeTruthy()
+    })
+
+    it('shows model error after blur when model is empty', async () => {
+      const wrapper = shallowMount(AddItemModal, {
+        localVue,
+        store: makeStore(),
+      })
+      await wrapper.find('input#model').trigger('blur')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.vm.fieldErrors.model).toBeTruthy()
+    })
+
+    it('shows condition error after blur when condition is not selected', async () => {
+      const wrapper = shallowMount(AddItemModal, {
+        localVue,
+        store: makeStore(),
+      })
+      await wrapper.find('select#condition').trigger('blur')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.vm.fieldErrors.condition).toBeTruthy()
+    })
+
+    it('shows photo error when touchField("photo") is called with no file chosen', async () => {
+      const wrapper = shallowMount(AddItemModal, {
+        localVue,
+        store: makeStore(),
+      })
+      wrapper.vm.touchField('photo')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.vm.fieldErrors.photo).toBeTruthy()
+    })
+
+    it('shows purchasePrice error when a negative value is entered and touched', async () => {
+      const wrapper = shallowMount(AddItemModal, {
+        localVue,
+        store: makeStore(),
+      })
+      await wrapper.find('input#purchasePrice').setValue('-10')
+      wrapper.vm.touchField('purchasePrice')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.vm.fieldErrors.purchasePrice).toBeTruthy()
+    })
+
+    it('does NOT flag purchasePrice error when the field is left empty (it is optional)', async () => {
+      const wrapper = shallowMount(AddItemModal, {
+        localVue,
+        store: makeStore(),
+      })
+      wrapper.vm.touchField('purchasePrice')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.vm.fieldErrors.purchasePrice).toBeFalsy()
+    })
+
+    it('hasValidationErrors is false when all required fields are filled', async () => {
+      const wrapper = shallowMount(AddItemModal, {
+        localVue,
+        store: makeStore(),
+      })
+      wrapper.vm.form.make = 'Leica'
+      wrapper.vm.form.model = 'M3'
+      wrapper.vm.form.condition = 'Excellent'
+      wrapper.vm.photoFile = new File(['x'], 'test.jpg', { type: 'image/jpeg' })
+      await wrapper.vm.$nextTick()
+      expect(wrapper.vm.hasValidationErrors).toBe(false)
+    })
+
+    it('does not dispatch addItem when form is submitted with empty required fields', async () => {
+      const addItem = jest.fn().mockResolvedValue()
+      const wrapper = shallowMount(AddItemModal, {
+        localVue,
+        store: makeStore({ addItem }),
+      })
+      await wrapper.find('form').trigger('submit')
+      await wrapper.vm.$nextTick()
+      expect(addItem).not.toHaveBeenCalled()
+    })
+  })
+
+  // -------------------------------------------------------------------------
   // Successful submit
   // -------------------------------------------------------------------------
   describe('successful submit', () => {
+    // Helper: fill all required fields and attach a mock photo so validation
+    // passes. Required fields added in cycle 6: make, model, condition, photo.
+    async function fillRequiredFields(wrapper, overrides = {}) {
+      await wrapper
+        .find('input#make')
+        .setValue(overrides.make !== undefined ? overrides.make : 'Leica')
+      await wrapper
+        .find('input#model')
+        .setValue(overrides.model !== undefined ? overrides.model : 'M6')
+      await wrapper
+        .find('select#condition')
+        .setValue(
+          overrides.condition !== undefined ? overrides.condition : 'Good'
+        )
+      // Set photoFile directly on vm — file inputs can't be set via setValue in jsdom
+      wrapper.vm.photoFile = new File(['x'], 'test.jpg', { type: 'image/jpeg' })
+      await wrapper.vm.$nextTick()
+    }
+
     it('dispatches items/addItem with formData containing the entered make', async () => {
       const addItem = jest.fn().mockResolvedValue()
       const wrapper = shallowMount(AddItemModal, {
@@ -242,8 +361,7 @@ describe('AddItemModal component', () => {
         store: makeStore({ addItem }),
       })
 
-      await wrapper.find('input#make').setValue('Leica')
-      await wrapper.find('input#model').setValue('M6')
+      await fillRequiredFields(wrapper, { make: 'Leica' })
       await wrapper.find('form').trigger('submit')
       await wrapper.vm.$nextTick()
 
@@ -262,7 +380,7 @@ describe('AddItemModal component', () => {
         store: makeStore({ addItem }),
       })
 
-      await wrapper.find('input#make').setValue('Canon')
+      await fillRequiredFields(wrapper, { make: 'Canon' })
       await wrapper.find('form').trigger('submit')
       await wrapper.vm.$nextTick()
 
@@ -283,6 +401,7 @@ describe('AddItemModal component', () => {
         store: makeStore({ addItem }),
       })
 
+      await fillRequiredFields(wrapper)
       await wrapper.find('form').trigger('submit')
       await wrapper.vm.$nextTick()
 
@@ -301,6 +420,7 @@ describe('AddItemModal component', () => {
         store: makeStore({ addItem }),
       })
 
+      await fillRequiredFields(wrapper)
       await wrapper.find('form').trigger('submit')
       await wrapper.vm.$nextTick()
 
@@ -314,6 +434,7 @@ describe('AddItemModal component', () => {
         store: makeStore({ addItem }),
       })
 
+      await fillRequiredFields(wrapper)
       await wrapper.find('form').trigger('submit')
       await wrapper.vm.$nextTick()
 
@@ -325,6 +446,15 @@ describe('AddItemModal component', () => {
   // Failed submit
   // -------------------------------------------------------------------------
   describe('failed submit', () => {
+    // Shared helper — same as in "successful submit" group
+    async function fillRequiredFields(wrapper) {
+      await wrapper.find('input#make').setValue('Leica')
+      await wrapper.find('input#model').setValue('M6')
+      await wrapper.find('select#condition').setValue('Good')
+      wrapper.vm.photoFile = new File(['x'], 'test.jpg', { type: 'image/jpeg' })
+      await wrapper.vm.$nextTick()
+    }
+
     it('shows an error message when addItem rejects', async () => {
       const addItem = jest
         .fn()
@@ -334,6 +464,7 @@ describe('AddItemModal component', () => {
         store: makeStore({ addItem }),
       })
 
+      await fillRequiredFields(wrapper)
       await wrapper.find('form').trigger('submit')
       await wrapper.vm.$nextTick()
 
@@ -350,6 +481,7 @@ describe('AddItemModal component', () => {
         store: makeStore({ addItem }),
       })
 
+      await fillRequiredFields(wrapper)
       await wrapper.find('form').trigger('submit')
       await wrapper.vm.$nextTick()
 
