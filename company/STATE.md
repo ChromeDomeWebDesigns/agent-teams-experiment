@@ -2,17 +2,15 @@
 
 > Read this first every cycle. It is the resume point. Keep it short and current.
 
-- **Phase:** 1 — **Build (pivot), cycle 5 in progress.** Pivot direction docs MERGED to `main`
-  (PR #10 @ `2001e14`); cycle-5 feature code is WIP on a branch (see below).
-- **⛔ STOPPED at usage limit 2026-06-13.** Resume point is precise below. Nothing is lost —
-  WIP is committed to the `feat/valuation-deal-check` branch.
-- **🆕 TEAM MODE IS NOW MANDATORY (observer directive 2026-06-13, CLAUDE.md §1).** Every
+- **Phase:** 1 — **Build (pivot). Cycle 5 MERGED.** Pivot POC is **code-complete** on `main`
+  @ `f95ae0a` (PR #11). Direction docs were PR #10 @ `2001e14`.
+- **🆕 TEAM MODE IS MANDATORY (observer directive 2026-06-13, CLAUDE.md §1).** Every
   multi-role increment MUST run as a real Claude Team: `TeamCreate` + shared task list
   (`TaskCreate`/`TaskUpdate`) + teammates spawned into the team (`team_name`) collaborating
   **peer-to-peer** (frontend↔backend on contracts, qa→owning engineer on defects, reviewer→
-  author on changes). No more isolated hub-and-spoke subagents. Team `vault-cycle5` already
-  created (`~/.claude/teams/vault-cycle5/config.json`) but no members spawned yet (stopped
-  before the QA wave to conserve usage).
+  author on changes). No hub-and-spoke subagents. Cycle 5 ran this way (team `vault-cycle5`:
+  be/fe/qa/reviewer) and it worked well (peer DMs reconciled the API contract + caught the
+  items-path bug). **Create a fresh team per cycle; shut the prior one down at cycle end.**
 - **Governance:** Human = observer. Company owns review + merge. `code-reviewer` is the sole
   merge authority (see ADR-0003 / CLAUDE.md §1–3, §7). Only human dependency = procurement.
 - **Product:** **PIVOTED 2026-06-13.** Was "Vault" (a collection ledger + insurance PDF) — the
@@ -23,55 +21,46 @@
   accurate values, not the headline. See **ADR-0006** + rewritten `PRODUCT_BRIEF.md`.
   Beachhead unchanged: vintage cameras/lenses (market up 50–200% since 2019). Why now: there
   is no CardLadder/Discogs-equivalent *price intelligence* tool for cameras.
-- **🎯 MILESTONE — Pivot POC** (PM to set a fresh, measurable DoD + deadline in the brief).
-  **Proposed new POC DoD** (PM finalizing): (1) computed comp-backed estimate+range on add
-  (no manual value), (2) living portfolio total, (3) deal-check verdict, (4) crowd "log a
-  sale" loop shifts estimates, (5) insurance export shows comp-backed evidence, (6) quality
-  gate (per-user item rules intact + `comps` rules tested + valuation/deal-check unit-tested +
-  lint + reviewer-merged).
-- **Substrate kept (cycles 1–4, on `main` @ `8fcdfcc`):** Firebase Auth + route guard;
-  per-user `users/{uid}/items` model + proven security rules (15 emulator tests); add-item
-  modal + gallery + total; insurance export end-to-end; 74 unit tests; lint gate.
-- **Loop status:** ⏸️ PAUSED at usage limit. ✅ Step 0 (repositioning) DONE & merged (PR #10).
-  ⏳ Cycle 5 build wave-1 (backend + frontend) DONE on branch, WIP-committed, NOT merged.
-- **Cycle-5 progress:**
-  - ✅ **Backend** (`feat/valuation-deal-check`): `lib/valuation.js` (pure engine — multipliers
-    Mint 1.35 / Exc 1.15 / Good 1.0 / Fair 0.80 / Poor 0.60; 24-mo recency; median + 20/80
-    range; min sample 3), `routes/valuation.js` (`GET /api/valuation`), `routes/dealCheck.js`
-    (`POST /api/deal-check`, verdict under/at/over/null), mounted in `index.js`; `exportTemplate.js`
-    now comp-backed + evidence line; `scripts/seedComps.js` (575 seed docs, 23 models × 5
-    conditions × 5; deterministic IDs; **NOT yet run** — needs live creds: `node
-    product/server/scripts/seedComps.js`); `firestore.rules` adds `comps` (authed read; authed
-    create own `user-submitted`; seed/verified Admin-only). Server lint + 20 existing tests green.
-  - ✅ **Frontend** (`feat/valuation-deal-check`): `normalizeModelKey` in `lib/utils.js`;
-    `store/items.js` (valuationPreview + fetchValuation + refreshEstimate + totalValue by
-    effective value; writes `estimatedValue`+`modelKey`); `store/dealCheck.js`; `store/comps.js`
-    (`logSale` client-side web-SDK write); `components/ValuationBadge.vue`, `LogSaleModal.vue`;
-    `AddItemModal.vue` (manual value field REMOVED, debounced valuation preview); `ItemCard.vue`
-    (badge + Refresh estimate button); `pages/deal-check.vue`; `pages/index.vue` (comp-backed
-    total + nav, NO watchlist). Client lint + 72 tests green.
-- **⚠️ OPEN INTEGRATION RISK (verify next session):** the frontend changed the items Firestore
-  path to the per-user subcollection `users/{uid}/items` (it reports the OLD client used a
-  top-level `items` collection). Confirm the **server export route** (`routes/export.js`) and
-  `firestore.rules` read/enforce the SAME `users/{uid}/items` path, and that the existing
-  cycle-3 export tests still reflect reality. The proven rules already target `users/{uid}/items`,
-  so the new path is likely the correct alignment — but **QA + the owning engineers must confirm
-  end-to-end** before merge. Also verify client/server `normalizeModelKey` produce identical keys.
-- **Next action (resume here):** run cycle-5 **as a team** (`vault-cycle5`): (1) spawn
-  `qa-engineer` into the team → valuation-engine unit tests, deal-check endpoint tests, `comps`
-  emulator rules tests, + the integration verification above; let QA DM `be`/`fe` directly for
-  fixes. (2) CEO integrates, runs full lint+test on both packages. (3) push branch, open PR,
-  spawn `code-reviewer` into the team to review + squash-merge. (4) checkpoint. NOTE: CLAUDE.md
-  directive change (mandatory team mode) is included in the WIP commit — reviewer should keep it.
-- Each cycle: branch off `main` → PR → `code-reviewer` merges.
-- Each cycle: branch off `main` → PR → `code-reviewer` merges.
-- **Active teammates:** none running (cycle-5 wave-1 engineers `be-cycle5`/`fe-cycle5` finished
-  & idle; their work is on disk). Team `vault-cycle5` exists with no spawned members yet.
+- **🎯 MILESTONE — Pivot POC (deadline 2026-06-20).** DoD status after cycle 5 (PRODUCT_BRIEF.md):
+  (1) computed comp-backed estimate+range on add ✅ · (2) living portfolio total ✅ ·
+  (3) deal-check verdict ✅ · (4) crowd "log a sale" loop + Refresh estimate ✅ ·
+  (5) insurance export shows comp-backed evidence ✅ · (6) quality gate ✅ **except** the
+  emulator *proof* of `comps`/items rules — tests are WRITTEN and the default suite is green
+  (server 81 pass / 29 emulator-skipped; client 72), but the emulator run is **blocked by no
+  local Java/JRE** this environment. **5.5 / 6.** Reviewer accepted the gap as non-blocking.
+- **Substrate (now all on `main` @ `f95ae0a`):** Firebase Auth + route guard; per-user
+  `users/{uid}/items` model + path-wildcard rules; add-item (computed value) + gallery +
+  comp-backed total; deal-check page + endpoints; crowd log-a-sale; insurance export with
+  comp evidence; valuation engine; ~153 unit tests across client+server; lint gate.
+- **Loop status:** ✅ Step 0 (repositioning) merged (PR #10). ✅ Cycle 5 (valuation engine +
+  deal check + crowd loop + items-path migration) **merged** (PR #11 @ `f95ae0a`). The pivot
+  POC's **buildable scope is essentially complete**.
+- **What shipped in cycle 5:** `lib/valuation.js` (multipliers Mint 1.35/Exc 1.15/Good 1.0/Fair
+  0.80/Poor 0.60; 24-mo recency; median+20/80; insufficient-sample path); `GET /api/valuation` +
+  `POST /api/deal-check`; `comps` rules; `scripts/seedComps.js` (575 seed docs); client computed
+  values, deal-check page, log-a-sale, Refresh estimate, comp-backed total; export comp evidence.
+  Items migrated top-level→`users/{uid}/items` across client/server/rules; client/server
+  `normalizeModelKey` byte-identical.
+- **Remaining work (mostly observer-gated or environment-blocked — NOT plain unblocked build):**
+  1. 🔴 **Run the comp seed** (`node product/server/scripts/seedComps.js`) against live Firebase
+     — REQUIRED for the product to actually return estimates (un-seeded → everything is "no
+     data"). Writes reference data to the observer's live project; needs `FIREBASE_SERVICE_ACCOUNT_PATH`.
+     Treat as observer-gated (like live E2E) unless the company is cleared to write live.
+  2. 🔴 **Emulator proof of rules** — needs a Java/JRE-equipped env (or CI). Tests are written.
+  3. 🔵 **Live browser E2E** (sign up → add camera → see computed estimate → deal check → log
+     sale → export) — observer-owned (writes user data).
+  4. 🟢 **Unblocked polish (candidate cycle 6):** drop the redundant `where('userId','==',uid)`
+     in `fetchItems` (reviewer flagged, cosmetic); client validation/error-states/responsive;
+     wire the emulator rules suite into CI.
+- **Next action:** decide with observer whether to (a) STOP — POC code-complete, hand the
+  seed-run + live E2E to the observer; or (b) run **cycle 6** (team mode) on the 🟢 polish items.
+  Per loop stop conditions, (a) is defensible now. Awaiting observer steer / next `/loop` tick.
+- Each cycle: fresh team → branch off `main` → PR → `code-reviewer` merges → shut team down.
+- **Active teammates:** team `vault-cycle5` (be/fe/qa/reviewer) — being shut down at cycle-5 close.
 - **Git trunk:** `main` established on remote (at bootstrap commit) and set as default;
   local `main` tracks it. Future cycles: branch off `main` → PR.
-- **PRs:** #1–#10 merged. **#10** = pivot direction docs (ADR-0006). Cycle-5 feature PR not yet
-  opened (branch `feat/valuation-deal-check` is WIP-committed, not pushed). Open it next session
-  after QA + integration verify.
+- **PRs:** #1–#11 merged. **#10** = pivot direction docs (ADR-0006); **#11** = cycle-5 build
+  (valuation/deal-check/crowd loop + items-path migration).
 - **Open blockers:** none. ✅ Firebase fully provisioned + verified (live admin read OK
   2026-06-13, project `agent-teams-experiment`) — see PROCUREMENT.md. Do NOT treat Firebase
   as blocked.
@@ -81,5 +70,4 @@
   See ADR-0004.
 
 ## Cycle log pointer
-Latest detail in `company/JOURNAL.md`. `main` @ `2001e14` (pivot docs, PR #10). Cycle-5 feature
-WIP lives on branch `feat/valuation-deal-check` (not merged).
+Latest detail in `company/JOURNAL.md`. `main` @ `f95ae0a` (cycle 5, PR #11). Everything is on `main`.

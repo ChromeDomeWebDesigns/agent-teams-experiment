@@ -2,6 +2,33 @@
 
 > Newest entry at top. One short entry per cycle: what shipped, decisions, blockers, next.
 
+## Cycle 5 — PIVOT executed: market-aware collection (2026-06-13)
+- **The pivot.** Observer rejected the shipped POC as a CRUD/spreadsheet-replacement ("data
+  entry is not a solution"). Reframed the product (ADR-0006) from a collection *ledger* to a
+  **market-aware collection**: comp-backed *living valuation* + a *"good buy?" deal check*,
+  riding a **crowd-sourced sales dataset** (the moat). Insurance export demoted to a byproduct.
+  The real problem = information asymmetry, not data entry. Our own discovery had named
+  CardLadder/Discogs as comparables and we'd copied the commodity half (the list), not the moat
+  (the intelligence). Observer steers: BOTH valuation+deal; crowd-sourced comps (eBay sold-comp
+  API is partner-gated). Step 0 docs merged as **PR #10**.
+- **Shipped (PR #11 @ `f95ae0a`).** `lib/valuation.js` (condition multipliers, 24-mo recency,
+  median + 20/80 range, insufficient-sample path); `GET /api/valuation` + `POST /api/deal-check`;
+  `comps` rules + `scripts/seedComps.js` (575 seed docs); client computed values, deal-check
+  page, log-a-sale crowd loop, Refresh estimate, comp-backed gallery total; export comp evidence.
+  **Found & fixed an integration bug:** the substrate stored items in a top-level `items`
+  collection — migrated client + server `export.js` + `firestore.rules` to `users/{uid}/items`.
+- **Team mode (observer directive).** Ran cycle 5 as a real Claude Team (`vault-cycle5`:
+  be/fe/qa/reviewer) with **peer-to-peer collaboration** — fe↔be reconciled the API contract and
+  `normalizeModelKey` directly, qa coordinated specs with be, reviewer merged. Codified as
+  mandatory in CLAUDE.md §1. Worked notably better than the prior hub-and-spoke.
+- **DoD: 5.5 / 6.** Items 1–5 fully met; #6 met except the **emulator proof** of the rules —
+  tests are written and the default suite is green (server 81 / client 72, lint clean), but the
+  emulator run is **blocked by no local Java/JRE** this environment. Reviewer accepted as
+  non-blocking.
+- **Next / blockers.** POC is code-complete. Remaining is observer-gated (run the comp seed
+  against live Firebase — required to make valuations populate; live E2E) or env-blocked
+  (emulator proof needs Java). Defensible to STOP here; or cycle 6 = client polish.
+
 ## Cycle 4 — Hardening: rules test proven + POC DoD check (2026-06-13)
 - **Firestore rules now actually verified.** The emulator-gated rules suite was skipping in
   every prior cycle (no emulator). Stood up the Firebase emulator via `npx firebase-tools
