@@ -12,10 +12,12 @@
   Firebase project + service account in `.env` (see `company/PROCUREMENT.md`). Scaffolding of
   non-Firebase UI/parts can proceed in parallel.
 - **Active teammates:** none (cycle-1 team stood down)
+- **Git trunk:** `main` established on remote (at bootstrap commit) and set as default;
+  local `main` tracks it. Future cycles: branch off `main` → PR.
+- **PR:** #1 open — https://github.com/ChromeDomeWebDesigns/agent-teams-experiment/pull/1
+  (scaffold/company-bootstrap → main: discovery + scaffold + perms + git/sandbox fix).
 - **Open blockers:**
-  - Firebase project + service account (human procurement) — gates auth/DB wiring.
-  - First push/PR: remote is `github.com-cdwd:ChromeDomeWebDesigns/agent-teams-experiment`
-    — awaiting human OK to push (outward-facing).
+  - Firebase project + service account (human procurement) — gates auth/DB wiring (cycle 2).
 
 ## Cycle log pointer
 Latest detail in `company/JOURNAL.md`. Latest commit: `d177523` (shell-perms tweak).
