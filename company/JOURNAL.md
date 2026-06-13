@@ -2,6 +2,23 @@
 
 > Newest entry at top. One short entry per cycle: what shipped, decisions, blockers, next.
 
+## Hotfix — live security rules deployed (rules drift) (2026-06-13)
+- **Symptom (observer, live app):** `fetchItems failed {error: 'Missing or insufficient
+  permissions.'}` on the landing even when authed.
+- **Root cause:** rules **deployment drift**, not rules content. PR #11 migrated items from a
+  top-level `/items` collection to `users/{uid}/items`, but the LIVE project still had the
+  pre-migration rules — emulator/CI test the repo rules, but nothing ever *published* them live
+  (the seed wrote via Admin SDK, which bypasses rules). The app's new subcollection read hit the
+  stale rules → default-deny.
+- **Fix:** published the current `firestore.rules` + `storage.rules` to `agent-teams-experiment`
+  via the Firebase Rules REST API (token minted from the service account). `firebase deploy`
+  couldn't be used — the firebase-adminsdk SA lacks the `serviceusage.services.get` precheck
+  permission (403). Verified the active live releases now contain `users/{userId}/items` + `comps`
+  (firestore) and `users/{uid}/{allPaths=**}` (storage).
+- **Prevent recurrence:** added committed, reusable `product/server/scripts/deployRules.js`
+  (`node product/server/scripts/deployRules.js`). **Rules changes must be deployed after merge** —
+  consider wiring this into CI on push to `main` (needs the SA as a GitHub secret → observer).
+
 ## Cycle 7 — CI; POC complete at DoD 6/6 (2026-06-13)
 - Added `.github/workflows/ci.yml` (PR #15, merged `f4f41e1`): Node 20 + Temurin **Java 21**;
   lint + tests both packages + the Firestore **rules suite under the emulator** (`firebase-tools
