@@ -41,17 +41,25 @@
   values, deal-check page, log-a-sale, Refresh estimate, comp-backed total; export comp evidence.
   Items migrated top-level→`users/{uid}/items` across client/server/rules; client/server
   `normalizeModelKey` byte-identical.
-- **Remaining work (mostly observer-gated or environment-blocked — NOT plain unblocked build):**
-  1. 🔴 **Run the comp seed** (`node product/server/scripts/seedComps.js`) against live Firebase
-     — REQUIRED for the product to actually return estimates (un-seeded → everything is "no
-     data"). Writes reference data to the observer's live project; needs `FIREBASE_SERVICE_ACCOUNT_PATH`.
-     Treat as observer-gated (like live E2E) unless the company is cleared to write live.
-  2. 🔴 **Emulator proof of rules** — needs a Java/JRE-equipped env (or CI). Tests are written.
-  3. 🔵 **Live browser E2E** (sign up → add camera → see computed estimate → deal check → log
-     sale → export) — observer-owned (writes user data).
-  4. 🟢 **Unblocked polish (candidate cycle 6):** drop the redundant `where('userId','==',uid)`
-     in `fetchItems` (reviewer flagged, cosmetic); client validation/error-states/responsive;
-     wire the emulator rules suite into CI.
+- **✅ COMP SEED RUN (2026-06-13, observer-authorized).** Ran `scripts/seedComps.js` against the
+  live project (`agent-teams-experiment`): **575 comps live, 23 models × 25 docs, parity-verified
+  (0 key/runtime mismatches).** Live valuations confirmed (e.g. Leica M3 Excellent → $1,183;
+  Hasselblad 500C/M Mint → $2,052). DoD #1 now proven end-to-end on live data.
+  - **🐛 Bug found+fixed during the run:** the seed script HARD-CODED each `modelKey`, and ~14/23
+    were hand-written wrong vs `normalizeModelKey(make,model)` (e.g. seeded `hasselblad-500cm` but
+    runtime computes `hasselblad-500c-m`) → those models returned "no data" in-app. Fixed the
+    script to DERIVE `modelKey` via the shared `normalizeModelKey`; re-seeded; re-verified 0
+    mismatches. **The fix is in PR #13 (awaiting reviewer merge) — `main`'s script is still the
+    buggy version until merged; do NOT re-run the seed from `main` until #13 lands.**
+- **Remaining work:**
+  1. 🔴 **Emulator proof of rules** — needs a Java/JRE-equipped env (or CI). Tests are written.
+  2. 🔵 **Live browser E2E** (sign up → add camera → see computed estimate → deal check → log
+     sale → export) — observer-owned (writes user data). Comps are now seeded, so estimates
+     will populate.
+  3. 🟡 **QA regression test (next cycle):** assert seed `modelKey` == `normalizeModelKey(make,
+     model)` for every seed entry, so this class of bug can't recur.
+  4. 🟢 **Unblocked polish:** drop the redundant `where('userId','==',uid)` in `fetchItems`
+     (reviewer flagged, cosmetic); client validation/error-states/responsive; rules suite in CI.
 - **Next action:** decide with observer whether to (a) STOP — POC code-complete, hand the
   seed-run + live E2E to the observer; or (b) run **cycle 6** (team mode) on the 🟢 polish items.
   Per loop stop conditions, (a) is defensible now. Awaiting observer steer / next `/loop` tick.

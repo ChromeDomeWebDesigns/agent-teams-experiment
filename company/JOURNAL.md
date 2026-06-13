@@ -2,6 +2,22 @@
 
 > Newest entry at top. One short entry per cycle: what shipped, decisions, blockers, next.
 
+## Seed run — live comps populated + seed-key parity bug fixed (2026-06-13)
+- **Observer authorized a live write** ("you should have the service account in the .env… see if
+  you can accomplish this seed task"). Ran `scripts/seedComps.js` against `agent-teams-experiment`:
+  575 comps written. (Sandbox blocked gRPC to `firestore.googleapis.com`; ran with the sandbox
+  dropped for the live-write command only.)
+- **Verification caught a real bug** (the reason to verify, not just declare done): the seed
+  HARD-CODED each `modelKey`, and ~14/23 were hand-written inconsistently with the shared
+  `normalizeModelKey(make,model)` — e.g. seeded `hasselblad-500cm` but the app computes
+  `hasselblad-500c-m`, so a user adding most lenses + several bodies got "no data" despite 25
+  seeded comps existing. QA's unit tests injected comps directly, so they never exercised
+  seed-key↔runtime-key parity.
+- **Fix:** derive `modelKey` from `normalizeModelKey` in the seed script (single source of truth);
+  re-seeded; re-verified — 575 docs, 23 keys × 25, **0 parity mismatches**, all previously-broken
+  models now value (Hasselblad 500C/M Mint $2,052; Summicron 50/2 Exc $1,352; etc.). Fix → PR #13.
+- **Follow-up filed:** QA regression test asserting seed/runtime key parity (BACKLOG).
+
 ## Cycle 5 — PIVOT executed: market-aware collection (2026-06-13)
 - **The pivot.** Observer rejected the shipped POC as a CRUD/spreadsheet-replacement ("data
   entry is not a solution"). Reframed the product (ADR-0006) from a collection *ledger* to a
