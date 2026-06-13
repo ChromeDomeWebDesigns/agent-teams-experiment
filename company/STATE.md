@@ -21,14 +21,25 @@
   - Stretch (NOT required for POC): valuation history over time; price feeds.
   - **Loop stop conditions:** POC DoD met → stop & summarize. Else continue until the
     2026-06-19 deadline, no unblocked work remains, or usage credits are exhausted.
-- **Last cycle:** Cycle 1 ✅ — scaffolded `product/client` (Nuxt 2 SPA) + `product/server`
-  (Express). Reviewed by `code-reviewer` and **merged to `main`** via PR #1 (squash) — the
-  autonomous review→merge flow is live. `main` @ `0b920a1`.
-- **Active sprint:** none (between cycles)
-- **Next action:** Cycle 2 BUILT (auth + per-user item CRUD + Firestore/Storage rules +
-  specs) — green (lint + 36 tests). Integrating → PR → code-reviewer merge. Then cycle 3 =
-  insurance export (server PDF/print endpoint + client action) per the POC DoD. Each cycle:
-  branch off `main` → PR → `code-reviewer` merges.
+  - **Progress (2026-06-13):** #1 auth ✅ · #2 add-item ✅ · #3 gallery+total ✅ ·
+    #4 insurance export ⏳ (cycle 3) · #5 quality gate ✅ (rules + 36 tests + lint + merged;
+    `AddItemModal` still needs its own test). ≈ 3.5 / 5.
+- **Last cycle:** Cycle 2 ✅ — Firebase auth + per-user item CRUD + Firestore/Storage rules +
+  36 tests. Reviewed by `code-reviewer` (safety invariant verified) and **merged to `main`**
+  via PR #3 (squash). `main` @ `c5a476c`. (Cycles 0–2 + governance/charter all merged.)
+- **Loop status:** ⏸️ STOPPED by the observer on 2026-06-13 after PR #3 merged. To resume,
+  re-run `/loop` (it re-orients from this file + `git log`).
+- **Active sprint:** none.
+- **Next action (cycle 3):** the insurance-ready export — server `GET /api/export` (items via
+  Admin SDK → printable HTML/PDF; a 501 stub + `verifyFirebaseToken` already exist) + a
+  client "Export for insurance" action. This is DoD item #4 — the last core POC feature.
+- **Carried follow-ups (do early in cycle 3):**
+  - Dead code: delete `product/client/components/AddItemForm.vue` (+ its spec; unused —
+    `AddItemModal.vue` is the shipped form); add a spec for `AddItemModal.vue`; drop the
+    legacy `{formData, photoFile}` branch in `store/items.js` `addItem`.
+  - Not-yet-run-live: do a manual/`verify` run (sign up → add camera → total → export)
+    before declaring the POC done — current tests are unit-level with mocks.
+- Each cycle: branch off `main` → PR → `code-reviewer` merges.
 - **Active teammates:** none (cycle-1 team stood down)
 - **Git trunk:** `main` established on remote (at bootstrap commit) and set as default;
   local `main` tracks it. Future cycles: branch off `main` → PR.
@@ -42,4 +53,4 @@
   See ADR-0004.
 
 ## Cycle log pointer
-Latest detail in `company/JOURNAL.md`. `main` @ `0b920a1`. Everything lives on `main`.
+Latest detail in `company/JOURNAL.md`. `main` @ `c5a476c`. Everything lives on `main`.
