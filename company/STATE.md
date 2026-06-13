@@ -66,6 +66,13 @@
   + Temurin **Java 21**; `npm ci` + lint + tests both packages + the **Firestore rules suite under
   the emulator** via `firebase-tools emulators:exec`. Closed the DoD #6 emulator-proof gap that was
   blocked locally (no Java). CI now gates every PR + push to `main`.
+- **🔧 LIVE RULES DEPLOYED (2026-06-13 hotfix).** The live app threw `Missing or insufficient
+  permissions` on `fetchItems` — the live project still had pre-migration rules (PR #11 moved items
+  to `users/{uid}/items`; nothing ever *published* the new rules — emulator/CI only test them).
+  Published `firestore.rules` + `storage.rules` to `agent-teams-experiment` via the Rules REST API
+  (SA token; `firebase deploy` is blocked — SA lacks `serviceusage` precheck). Verified live.
+  **Rules now drift unless deployed after each change** → use `node product/server/scripts/deployRules.js`
+  (committed). Follow-up: wire it into CI on push to `main` (needs SA as a GitHub secret → observer).
 - **Remaining work (all observer-owned / deferred — nothing unblocked for the company):**
   1. 🔵 **Live browser E2E** (sign up → add camera → computed estimate → deal check → log sale →
      export) — observer-owned (writes user data). Comps are seeded, so estimates will populate.
