@@ -1,4 +1,4 @@
-# Spec: Valuation, Deal Check, Log a Sale, Watchlist UX
+# Spec: Valuation, Deal Check, Log a Sale UX
 
 > Owner: product-designer  |  Cycle: 5 (pivot)  |  Status: FINAL
 > Stack: Nuxt 2 / Vue 2 SPA, existing SCSS tokens (`_variables.scss`), Vuex classic modules.
@@ -484,64 +484,13 @@ high, sampleSize }`.
 
 ---
 
-## 6. Watchlist (lightweight)
+## 6. Watchlist — POST-POC (not in this build)
 
-### Scope for POC
-
-Save a make/model → see its current comp range on the watchlist page. Inbound listing
-alerts are explicitly post-POC (require a listing feed we don't have).
-
-### Route: `/watchlist`
-
-Nav link: "Watchlist" (same header row).
-
-### Page wireframe
-
-```
-┌──────────────────────────────────────────────────────────┐
-│  Watchlist                                               │
-│  Track models you're hunting for.                        │
-│──────────────────────────────────────────────────────────│
-│                                                          │
-│  [+ Watch a Model]  btn--primary                         │
-│                                                          │
-│  ┌─────────────────────────────────────────────────┐     │
-│  │  Nikon F3                         Excellent      │     │
-│  │  ~ $380     $290 – $470  ·  9 sales             │     │
-│  │  Last updated Jun 13, 2026          [Remove]    │     │
-│  └─────────────────────────────────────────────────┘     │
-│                                                          │
-│  ┌─────────────────────────────────────────────────┐     │
-│  │  Canon AE-1                       Good           │     │
-│  │  ~ $210     $160 – $260  ·  22 sales            │     │
-│  │  Last updated Jun 13, 2026          [Remove]    │     │
-│  └─────────────────────────────────────────────────┘     │
-│                                                          │
-│  [Empty state]                                           │
-│  No models on your watchlist yet.                        │
-│  Add models you're looking to buy — see current          │
-│  market ranges at a glance.                              │
-└──────────────────────────────────────────────────────────┘
-```
-
-### "Watch a Model" modal
-
-Same `modal-overlay` / `modal` pattern. Three fields: Make (text), Model (text),
-Condition (select). Submit saves to `users/{uid}/watchlist/{watchId}` → `{ make, model,
-modelKey, condition, createdAt }`. On save, immediately fetches the valuation and stores
-it in the watchlist entry (`estimatedValue` block).
-
-### Watchlist card states
-
-- **Normal:** estimate + range + sample size (same `ValuationBadge` component).
-- **Low-confidence:** ⚠ banner, as per section 2.
-- **No-data:** "No sales data yet." + "Log a sale" CTA.
-- **Loading (on add):** spinner while fetching the initial valuation.
-
-### Vuex module
-
-`store/watchlist.js` — `state: { watchlist, loading, error }`. Actions:
-`fetchWatchlist`, `addWatch(formData)`, `removeWatch(watchId)`.
+> **Out of scope for the pivot POC** (see `PRODUCT_BRIEF.md` Out-of-scope and `BACKLOG.md`
+> Later). A watchlist's real value is inbound listing alerts, which require a listing feed we
+> don't have; the page-load Deal Check (§5) covers the POC buyer use case. Do **not** build a
+> `/watchlist` page, `store/watchlist.js`, or a "Watch a Model" modal in cycle 5. This section
+> is a placeholder to record the deferral; the UX will be specced when the feature is greenlit.
 
 ---
 
@@ -585,14 +534,13 @@ Current nav (gallery header): `+ Add Item` | `Export for Insurance` | `Sign Out`
 New nav (gallery header):
 ```
 [Vault]  ← brand
-                    [+ Add Item] [+ Log a Sale] [Deal Check] [Watchlist] [Export] [Sign Out]
+                    [+ Add Item] [+ Log a Sale] [Deal Check] [Export] [Sign Out]
 ```
 
 - "Deal Check" → navigates to `/deal-check`.
-- "Watchlist" → navigates to `/watchlist`.
 - "+ Log a Sale" → opens `LogSaleModal.vue`.
 - The nav fits on a single row at 1100px max-width; at narrow widths the secondary
-  actions (Log a Sale, Watchlist, Export, Sign Out) collapse to a "More" overflow menu
+  actions (Log a Sale, Deal Check, Export, Sign Out) collapse to a "More" overflow menu
   (post-POC; for POC, wrap to a second line is acceptable since this is a desktop-first
   tool at POC stage).
 
@@ -607,7 +555,6 @@ messages for user-visible errors. No change to that pattern. The new screens add
 |---|---|
 | `logSale` fails | "Could not submit sale. Please try again." |
 | `dealCheck` fails | "Could not retrieve market data. Please try again." |
-| `addWatch` fails | "Could not add to watchlist. Please try again." |
 | `valuationPreview` fails (modal) | "Could not load estimate — you can save the item and check back later." (inline, not a flash) |
 
 Valuation preview failures are inline (inside the modal block) because they should not
@@ -653,8 +600,6 @@ block the add-item flow. All other failures use the existing flash/toast pattern
 | `components/LogSaleModal.vue` | Create | Log a sale modal (§5) |
 | `pages/index.vue` | Modify | Header label + sub-label; nav additions |
 | `pages/deal-check.vue` | Create | Deal check page (§4) |
-| `pages/watchlist.vue` | Create | Watchlist page (§6) |
 | `store/items.js` | Modify | Update `totalValue` getter; add `valuationPreview` state+action |
 | `store/dealCheck.js` | Create | Deal check state + action |
-| `store/watchlist.js` | Create | Watchlist state + actions |
 | `store/comps.js` | Create | `logSale` action |

@@ -34,7 +34,7 @@ Items are scoped strictly to the authenticated user. No top-level `items` collec
 |---|---|---|---|
 | `make` | string | yes | e.g. "Nikon", "Canon", "Leica" |
 | `model` | string | yes | e.g. "F3", "AE-1", "M6" |
-| `modelKey` | string | yes | Normalized key for comp matching: `make_model` lowercased, spaces → underscores, e.g. `leica_m3`. Computed client-side before the Firestore write (same normalization the server applies). |
+| `modelKey` | string | yes | Normalized key for comp matching: lowercase `make model`, with each run of non-alphanumeric characters collapsed to a single hyphen and leading/trailing hyphens trimmed — e.g. `Leica M3` → `leica-m3`, `Canon AE-1` → `canon-ae-1`. **Must match `comp-seed-plan.md` exactly** (hyphen-separated). Computed client-side before the Firestore write (same normalization the server applies). |
 | `serial` | string | no | Serial number as printed on the body |
 | `condition` | string (enum) | yes | One of: `Mint`, `Excellent`, `Good`, `Fair`, `Poor` |
 | `purchasePrice` | number | no | In USD. Optional — some items are inherited/gifted. |
@@ -72,7 +72,7 @@ to the portfolio total and shows the "no data" state.
 {
   "make": "Leica",
   "model": "M3",
-  "modelKey": "leica_m3",
+  "modelKey": "leica-m3",
   "serial": "891234",
   "condition": "Excellent",
   "purchasePrice": 900.00,
@@ -164,7 +164,7 @@ appears only in the no-data state (and on the item detail view post-save).
 
 ### Submit sequence
 
-1. Client computes `modelKey` from make + model (lowercase, spaces → underscores).
+1. Client computes `modelKey` from make + model (lowercase; non-alphanumeric runs → single hyphen; trim — matching `comp-seed-plan.md`).
 2. If the valuation preview block already fetched a result, that `estimatedValue` object
    is ready to include in the write. If the fetch is still in progress, wait for it to
    resolve (or timeout after 3 s and proceed with `estimatedValue: null`).
