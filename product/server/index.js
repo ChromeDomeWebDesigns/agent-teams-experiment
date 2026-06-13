@@ -47,6 +47,18 @@ const dealCheckRouter = express.Router()
 dealCheckRouter.post('/', verifyFirebaseToken, dealCheck)
 app.use('/api/deal-check', dealCheckRouter)
 
+// Centralized error handler. Auth middleware fails with next('Not authorized');
+// map that to a 401. Without this, Express's default handler returns 500 for any
+// next(err), so auth failures looked like server errors.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err === 'Not authorized') {
+    return res.status(401).json('Not authorized')
+  }
+  consola.error('[vault-server] unhandled error', err)
+  return res.status(500).json('Error.')
+})
+
 const PORT = process.env.PORT || 8080
 app.listen(PORT, () => {
   consola.ready(`vault-server running at http://localhost:${PORT}`)
