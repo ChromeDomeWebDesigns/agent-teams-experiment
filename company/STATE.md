@@ -22,25 +22,27 @@
   - **Loop stop conditions:** POC DoD met → stop & summarize. Else continue until the
     2026-06-19 deadline, no unblocked work remains, or usage credits are exhausted.
   - **Progress (2026-06-13):** #1 auth ✅ · #2 add-item ✅ · #3 gallery+total ✅ ·
-    #4 insurance export ✅ (cycle 3, PR #5) · #5 quality gate ✅ (rules + 80 tests + lint +
-    merged). **All 5 core DoD features built + merged ≈ 4.8 / 5** — remaining for a true POC
-    sign-off: run the emulator-gated rules test for real, and a live end-to-end verify run.
-- **Last cycle:** Cycle 3 ✅ — insurance-ready export (DoD #4): server `GET /api/export`
-  (Admin SDK → XSS-safe printable HTML inventory; 503 when unconfigured) + `lib/exportTemplate.js`,
-  client `items/exportInsurance` action + gallery button, +27 tests (export template/route,
-  export action, new `AddItemModal` spec). Reviewed by `code-reviewer` (security invariants:
-  auth-guarded, per-user isolation, XSS escaping verified) and **merged to `main`** via PR #5
-  (squash). `main` @ `8fcdfcc`. (Cycles 0–3 + governance/charter all merged.)
-- **Loop status:** ▶️ RUNNING — observer resumed `/loop` 2026-06-13 ("back to iterating").
-- **Active sprint:** Cycle 4 — hardening + POC DoD gate (see BACKLOG "Now").
-- **Next action (cycle 4):** (a) deferred cleanup — delete dead `AddItemForm.vue` (+ spec),
-  drop the legacy `{formData, photoFile}` `addItem` branch, migrate its specs; (b) actually
-  run the emulator-gated Firestore rules test (needs the Firebase emulator); (c) live verify
-  run (sign up → add camera → total → export against real Firebase); (d) POC DoD check + summary.
-- **Carried follow-ups:**
-  - Cleanup is now cycle-4 work (was deferred out of cycle 3 to avoid spec/gate coupling).
-  - Live verify + emulator run may hit environment needs (Firebase emulator / a browser for
-    the full sign-up flow) — file procurement if blocked rather than faking it.
+    #4 insurance export ✅ (cycle 3, PR #5) · #5 quality gate ✅ (rules **proven on emulator**
+    — 15 rules tests pass; 74 unit tests; lint; merged). **All 5 POC DoD items MET (5/5).**
+    Only remaining prudence step = a live browser E2E run (observer-owned; writes to their
+    live Firebase) — not a numbered DoD criterion.
+- **Last cycle:** Cycle 4 ✅ — hardening: made the emulator-gated Firestore rules suite
+  actually run (fixed Jest+undici `ReadableStream` via server `jest.config.js`/`jest.setup.js`),
+  15 rules tests pass; removed dead `AddItemForm` (PR #6); POC DoD check (all 5 met).
+  Cycle 3 (insurance export, PR #5) merged `8fcdfcc`; cleanup (PR #6) merged `2ada691`.
+- **Loop status:** ▶️ RUNNING — observer resumed `/loop` 2026-06-13. **POC DoD now met →
+  per the loop stop conditions, the team stops & summarizes after the cycle-4 hardening PR
+  merges.** Resume only on new observer direction.
+- **Active sprint:** Cycle 4 hardening PR (rules-test infra + DoD check docs) — open/merging.
+- **Next action:** open the cycle-4 PR (server `jest.config.js`/`jest.setup.js` + these doc
+  updates), have `code-reviewer` merge, then STOP & summarize to the observer. The live
+  browser E2E verify is the only open item and is the observer's call (manual run, or
+  authorize a Playwright E2E that would create test data in the live project).
+- **Carried follow-ups (post-POC, only on observer direction):**
+  - Live browser E2E verify (sign up → add camera w/ photo → total → export) against the
+    real project. Server↔live-Firestore already verified (admin read OK 2026-06-13).
+  - Optional: payload-shape normalization refactor (cosmetic; see BACKLOG), client polish
+    (validation/error states/responsive), rules test wired into CI.
 - Each cycle: branch off `main` → PR → `code-reviewer` merges.
 - **Active teammates:** none (cycle-1 team stood down)
 - **Git trunk:** `main` established on remote (at bootstrap commit) and set as default;
