@@ -2,8 +2,16 @@
 
 > Read this first every cycle. It is the resume point. Keep it short and current.
 
-- **Phase:** 1 — **Build (pivot). Cycle 5 MERGED.** Pivot POC is **code-complete** on `main`
-  @ `f95ae0a` (PR #11). Direction docs were PR #10 @ `2001e14`.
+- **Phase:** 2 — **PIVOT POC COMPLETE (DoD 6/6).** `main` @ `f4f41e1`. All cycles merged:
+  PR #10 (reposition) · #11 (build) · #12 (checkpoint) · #13 (seed-key fix) · #14 (harden +
+  polish) · #15 (CI). Live comps seeded (575, parity-verified). CI gates every PR (lint + tests
+  both packages + Firestore rules **proven under the emulator** — 120/120, 0 skipped).
+- **⏹️ AUTONOMOUS BUILD STOPPED — this is the right stop point, not a usage cutoff.** Every DoD
+  item is met and there is no high-value *unblocked* work left. The next real step is **observer-
+  owned**: put it in front of 5–10 real vintage-camera collectors (the brief's validation target)
+  and run a live browser E2E. Do NOT keep building features against an unvalidated thesis
+  (valuation history, alerts, marketplace, etc. are all deferred until the thesis validates).
+  Resume only on new observer direction (e.g. validation feedback, or a greenlit post-POC item).
 - **🆕 TEAM MODE IS MANDATORY (observer directive 2026-06-13, CLAUDE.md §1).** Every
   multi-role increment MUST run as a real Claude Team: `TeamCreate` + shared task list
   (`TaskCreate`/`TaskUpdate`) + teammates spawned into the team (`team_name`) collaborating
@@ -32,9 +40,8 @@
   `users/{uid}/items` model + path-wildcard rules; add-item (computed value) + gallery +
   comp-backed total; deal-check page + endpoints; crowd log-a-sale; insurance export with
   comp evidence; valuation engine; ~153 unit tests across client+server; lint gate.
-- **Loop status:** ✅ PR #10 (repositioning), #11 (cycle 5 build), #12 (checkpoint), #13 (seed-key
-  fix), #14 (cycle 6: seed-parity regression test + client polish) all **merged** to `main`.
-  Cycle 7 (CI) in progress on `chore/cycle7-ci`. The pivot POC is **code-complete + hardened**.
+- **Loop status:** ⏹️ STOPPED — pivot POC complete. PRs #10–#15 all merged. Cycle 7 (CI) merged
+  (PR #15 `f4f41e1`); the emulator rules proof ran green in CI (120/120, 0 skipped).
 - **What shipped in cycle 5:** `lib/valuation.js` (multipliers Mint 1.35/Exc 1.15/Good 1.0/Fair
   0.80/Poor 0.60; 24-mo recency; median+20/80; insufficient-sample path); `GET /api/valuation` +
   `POST /api/deal-check`; `comps` rules; `scripts/seedComps.js` (575 seed docs); client computed
@@ -55,19 +62,19 @@
   client polish (AddItemModal validation + inline errors + submit-guard; failed valuation still
   saves `estimatedValue:null`); dropped the redundant `where('userId','==',uid)` in `fetchItems`.
   Server 91 pass / 29 emulator-skipped; client 81 pass.
-- **Cycle 7 (in progress, `chore/cycle7-ci`):** GitHub Actions CI (`.github/workflows/ci.yml`) —
-  lint + tests both packages + the **Firestore rules suite under the emulator** (Java + Temurin in
-  the runner), which **closes the DoD #6 emulator-proof gap** that's been blocked locally (no Java).
-  Verify the CI run goes green via `gh pr checks` before the reviewer merges.
-- **Remaining work after cycle 7:**
+- **Cycle 7 (merged, PR #15 `f4f41e1`):** GitHub Actions CI (`.github/workflows/ci.yml`) — Node 20
+  + Temurin **Java 21**; `npm ci` + lint + tests both packages + the **Firestore rules suite under
+  the emulator** via `firebase-tools emulators:exec`. Closed the DoD #6 emulator-proof gap that was
+  blocked locally (no Java). CI now gates every PR + push to `main`.
+- **Remaining work (all observer-owned / deferred — nothing unblocked for the company):**
   1. 🔵 **Live browser E2E** (sign up → add camera → computed estimate → deal check → log sale →
      export) — observer-owned (writes user data). Comps are seeded, so estimates will populate.
-  2. 🟢 **Optional polish:** responsive ≥768px sweep. Low value pre-validation; defer.
-  - After CI is green + merged, the **POC is fully done (DoD 6/6)**; the only open items are
-    observer-owned (live E2E) → defensible STOP point.
-- **Next action:** decide with observer whether to (a) STOP — POC code-complete, hand the
-  seed-run + live E2E to the observer; or (b) run **cycle 6** (team mode) on the 🟢 polish items.
-  Per loop stop conditions, (a) is defensible now. Awaiting observer steer / next `/loop` tick.
+  2. 🔵 **Real-collector validation** — the brief's success gate: 5–10 collectors use it; ≥3 say it
+     beats their spreadsheet. Observer-owned outreach. Post-POC features stay deferred until this.
+  3. 🟢 **Optional polish:** responsive ≥768px sweep. Low value pre-validation; defer.
+- **Next action:** none autonomous — the company has shipped the POC. Awaiting observer:
+  live E2E + real-collector validation. Resume on new direction (validation feedback, or a
+  greenlit post-POC item from BACKLOG "Later").
 - Each cycle: fresh team → branch off `main` → PR → `code-reviewer` merges → shut team down.
 - **Active teammates:** team `vault-cycle5` (be/fe/qa/reviewer) — being shut down at cycle-5 close.
 - **Git trunk:** `main` established on remote (at bootstrap commit) and set as default;
