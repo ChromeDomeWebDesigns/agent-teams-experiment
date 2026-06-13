@@ -32,9 +32,9 @@
   `users/{uid}/items` model + path-wildcard rules; add-item (computed value) + gallery +
   comp-backed total; deal-check page + endpoints; crowd log-a-sale; insurance export with
   comp evidence; valuation engine; ~153 unit tests across client+server; lint gate.
-- **Loop status:** ✅ Step 0 (repositioning) merged (PR #10). ✅ Cycle 5 (valuation engine +
-  deal check + crowd loop + items-path migration) **merged** (PR #11 @ `f95ae0a`). The pivot
-  POC's **buildable scope is essentially complete**.
+- **Loop status:** ✅ PR #10 (repositioning), #11 (cycle 5 build), #12 (checkpoint), #13 (seed-key
+  fix), #14 (cycle 6: seed-parity regression test + client polish) all **merged** to `main`.
+  Cycle 7 (CI) in progress on `chore/cycle7-ci`. The pivot POC is **code-complete + hardened**.
 - **What shipped in cycle 5:** `lib/valuation.js` (multipliers Mint 1.35/Exc 1.15/Good 1.0/Fair
   0.80/Poor 0.60; 24-mo recency; median+20/80; insufficient-sample path); `GET /api/valuation` +
   `POST /api/deal-check`; `comps` rules; `scripts/seedComps.js` (575 seed docs); client computed
@@ -49,17 +49,22 @@
     were hand-written wrong vs `normalizeModelKey(make,model)` (e.g. seeded `hasselblad-500cm` but
     runtime computes `hasselblad-500c-m`) → those models returned "no data" in-app. Fixed the
     script to DERIVE `modelKey` via the shared `normalizeModelKey`; re-seeded; re-verified 0
-    mismatches. **The fix is in PR #13 (awaiting reviewer merge) — `main`'s script is still the
-    buggy version until merged; do NOT re-run the seed from `main` until #13 lands.**
-- **Remaining work:**
-  1. 🔴 **Emulator proof of rules** — needs a Java/JRE-equipped env (or CI). Tests are written.
-  2. 🔵 **Live browser E2E** (sign up → add camera → see computed estimate → deal check → log
-     sale → export) — observer-owned (writes user data). Comps are now seeded, so estimates
-     will populate.
-  3. 🟡 **QA regression test (next cycle):** assert seed `modelKey` == `normalizeModelKey(make,
-     model)` for every seed entry, so this class of bug can't recur.
-  4. 🟢 **Unblocked polish:** drop the redundant `where('userId','==',uid)` in `fetchItems`
-     (reviewer flagged, cosmetic); client validation/error-states/responsive; rules suite in CI.
+    mismatches. Fixed in **PR #13** (merged `403427e`).
+- **Cycle 6 (merged, PR #14 `15ce8f6`):** seed↔runtime `modelKey` **parity regression test**
+  (`__tests__/seedComps.spec.js`, pins the 5 originally-divergent models — bug class can't recur);
+  client polish (AddItemModal validation + inline errors + submit-guard; failed valuation still
+  saves `estimatedValue:null`); dropped the redundant `where('userId','==',uid)` in `fetchItems`.
+  Server 91 pass / 29 emulator-skipped; client 81 pass.
+- **Cycle 7 (in progress, `chore/cycle7-ci`):** GitHub Actions CI (`.github/workflows/ci.yml`) —
+  lint + tests both packages + the **Firestore rules suite under the emulator** (Java + Temurin in
+  the runner), which **closes the DoD #6 emulator-proof gap** that's been blocked locally (no Java).
+  Verify the CI run goes green via `gh pr checks` before the reviewer merges.
+- **Remaining work after cycle 7:**
+  1. 🔵 **Live browser E2E** (sign up → add camera → computed estimate → deal check → log sale →
+     export) — observer-owned (writes user data). Comps are seeded, so estimates will populate.
+  2. 🟢 **Optional polish:** responsive ≥768px sweep. Low value pre-validation; defer.
+  - After CI is green + merged, the **POC is fully done (DoD 6/6)**; the only open items are
+    observer-owned (live E2E) → defensible STOP point.
 - **Next action:** decide with observer whether to (a) STOP — POC code-complete, hand the
   seed-run + live E2E to the observer; or (b) run **cycle 6** (team mode) on the 🟢 polish items.
   Per loop stop conditions, (a) is defensible now. Awaiting observer steer / next `/loop` tick.

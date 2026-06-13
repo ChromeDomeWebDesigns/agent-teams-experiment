@@ -1,0 +1,55 @@
+name: CI
+
+# Runs lint + tests for both packages on every PR and on pushes to main.
+# The server job runs under the Firestore emulator so the security-rules suite
+# (product/server/__tests__/firestore.rules.spec.js) actually executes — it is
+# auto-skipped when FIRESTORE_EMULATOR_HOST is unset, and emulators:exec sets it.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Java (Firestore emulator runtime)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install server deps
+        run: npm ci
+        working-directory: product/server
+
+      - name: Install client deps
+        run: npm ci
+        working-directory: product/client
+
+      - name: Lint server
+        run: npm run lint
+        working-directory: product/server
+
+      - name: Lint client
+        run: npm run lint
+        working-directory: product/client
+
+      - name: Test client
+        run: npm test
+        working-directory: product/client
+
+      # Runs from the repo root so firebase.json + firestore.rules resolve.
+      # emulators:exec boots the Firestore emulator, sets FIRESTORE_EMULATOR_HOST
+      # for the child process, runs the full server suite (incl. the rules tests),
+      # and propagates the child's exit code as the step result.
+      - name: Test server + Firestore rules (emulator)
+        run: npx -y firebase-tools emulators:exec --only firestore --project demo-vault "npm --prefix product/server test"
