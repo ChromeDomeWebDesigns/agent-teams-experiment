@@ -3,35 +3,12 @@
 // Run: node product/server/scripts/seedComps.js
 // Requires: .env at repo root with FIREBASE_SERVICE_ACCOUNT_PATH set.
 // Safe to re-run: deletes all docs where status == 'seed' before re-writing.
+//
+// This module is also importable by tests without side-effects:
+//   const { MODELS, buildComps } = require('./scripts/seedComps')
+//   buildComps() returns pure comp data; no Firestore connection is made.
 
-require('dotenv').config({
-  path: require('path').resolve(__dirname, '../../../.env'),
-})
-
-const path = require('path')
-const fs = require('fs')
-const admin = require('firebase-admin')
-// modelKey MUST be derived from the same normalizer the client/server use at
-// runtime, or a user's computed key won't match the seeded comps (see the
-// 2026-06-13 seed-parity bug: hand-written keys like `hasselblad-500cm`
-// diverged from normalizeModelKey('Hasselblad','500C/M') = `hasselblad-500c-m`).
 const { normalizeModelKey } = require('../lib/valuation')
-
-// ---------------------------------------------------------------------------
-// Firebase init
-// ---------------------------------------------------------------------------
-
-const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
-if (!serviceAccountPath || !fs.existsSync(serviceAccountPath)) {
-  console.error('FIREBASE_SERVICE_ACCOUNT_PATH not set or file not found.')
-  process.exit(1)
-}
-
-admin.initializeApp({
-  credential: admin.credential.cert(require(path.resolve(serviceAccountPath))),
-})
-
-const db = admin.firestore()
 
 // ---------------------------------------------------------------------------
 // Condition multipliers (must match lib/valuation.js)
@@ -139,7 +116,18 @@ function _pick(arr, i) {
 // Build comp docs
 // ---------------------------------------------------------------------------
 
-function buildComps() {
+/**
+ * Returns the full array of comp documents to be written to Firestore.
+ * Pure function — no Firestore dependency. Safe to call from tests.
+ *
+ * @param {Object} [opts]
+ * @param {*} [opts.createdAt=new Date()] - Value to use for the `createdAt`
+ *   field on each doc. The live seed run passes
+ *   `admin.firestore.FieldValue.serverTimestamp()`; tests pass nothing (a
+ *   plain `new Date()` is used so no Firebase app is required).
+ * @returns {Array<{ id: string, data: Object }>}
+ */
+function buildComps({ createdAt = new Date() } = {}) {
   const docs = []
   // 5 comps per condition tier for every model = 5 * 5 * 23 = 575 docs
   // Split across multiple Firestore batches (max 500/batch)
@@ -174,7 +162,7 @@ function buildComps() {
             source: _pick(SOURCES, globalIdx),
             contributedBy: 'seed',
             status: 'seed',
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdAt,
           },
         })
       })
@@ -185,52 +173,89 @@ function buildComps() {
 }
 
 // ---------------------------------------------------------------------------
-// Main
+// Exports (safe to require from tests — no side-effects at module load time)
 // ---------------------------------------------------------------------------
 
-async function main() {
-  console.log('seedComps: starting...')
+module.exports = { MODELS, buildComps }
 
-  // 1. Delete existing seed docs
-  console.log('seedComps: removing existing seed docs...')
-  const existing = await db
-    .collection('comps')
-    .where('status', '==', 'seed')
-    .get()
-  if (existing.docs.length > 0) {
-    // Firestore batch max 500; chunk deletions
-    const chunks = _chunk(existing.docs, 499)
+// ---------------------------------------------------------------------------
+// Main — only runs when executed directly, not when require()'d by a test
+// ---------------------------------------------------------------------------
+
+if (require.main === module) {
+  require('dotenv').config({
+    path: require('path').resolve(__dirname, '../../../.env'),
+  })
+
+  const path = require('path')
+  const fs = require('fs')
+  const admin = require('firebase-admin')
+
+  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
+  if (!serviceAccountPath || !fs.existsSync(serviceAccountPath)) {
+    console.error('FIREBASE_SERVICE_ACCOUNT_PATH not set or file not found.')
+    process.exit(1)
+  }
+
+  admin.initializeApp({
+    credential: admin.credential.cert(
+      require(path.resolve(serviceAccountPath))
+    ),
+  })
+
+  const db = admin.firestore()
+
+  async function main() {
+    console.log('seedComps: starting...')
+
+    // 1. Delete existing seed docs
+    console.log('seedComps: removing existing seed docs...')
+    const existing = await db
+      .collection('comps')
+      .where('status', '==', 'seed')
+      .get()
+    if (existing.docs.length > 0) {
+      // Firestore batch max 500; chunk deletions
+      const chunks = _chunk(existing.docs, 499)
+      for (const chunk of chunks) {
+        const batch = db.batch()
+        chunk.forEach((d) => batch.delete(d.ref))
+        await batch.commit()
+      }
+      console.log(
+        `seedComps: deleted ${existing.docs.length} existing seed docs.`
+      )
+    } else {
+      console.log('seedComps: no existing seed docs found.')
+    }
+
+    // 2. Write new seed docs
+    const docs = buildComps({
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    })
+    console.log(`seedComps: writing ${docs.length} seed docs...`)
+
+    const chunks = _chunk(docs, 499)
     for (const chunk of chunks) {
       const batch = db.batch()
-      chunk.forEach((d) => batch.delete(d.ref))
+      chunk.forEach(({ id, data }) => {
+        const ref = db.collection('comps').doc(id)
+        batch.set(ref, data)
+      })
       await batch.commit()
     }
+
+    console.log(`seedComps: done. ${docs.length} comp docs written.`)
     console.log(
-      `seedComps: deleted ${existing.docs.length} existing seed docs.`
+      `  Models: ${MODELS.length}, Conditions: ${CONDITIONS.length}, Per tier: 5`
     )
-  } else {
-    console.log('seedComps: no existing seed docs found.')
+    process.exit(0)
   }
 
-  // 2. Write new seed docs
-  const docs = buildComps()
-  console.log(`seedComps: writing ${docs.length} seed docs...`)
-
-  const chunks = _chunk(docs, 499)
-  for (const chunk of chunks) {
-    const batch = db.batch()
-    chunk.forEach(({ id, data }) => {
-      const ref = db.collection('comps').doc(id)
-      batch.set(ref, data)
-    })
-    await batch.commit()
-  }
-
-  console.log(`seedComps: done. ${docs.length} comp docs written.`)
-  console.log(
-    `  Models: ${MODELS.length}, Conditions: ${CONDITIONS.length}, Per tier: 5`
-  )
-  process.exit(0)
+  main().catch((err) => {
+    console.error('seedComps: fatal error', err)
+    process.exit(1)
+  })
 }
 
 /* private */
@@ -242,8 +267,3 @@ function _chunk(arr, size) {
   }
   return out
 }
-
-main().catch((err) => {
-  console.error('seedComps: fatal error', err)
-  process.exit(1)
-})
