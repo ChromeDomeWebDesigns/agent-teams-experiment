@@ -15,14 +15,15 @@ build — read the gate tags. Run any real cycle as a **fresh Claude Team** (CLA
 
 - [x] [ceo] **Run the comp seed against live Firebase** — DONE 2026-06-13 (observer-authorized). 575 comps live, parity-verified. Found+fixed a seed `modelKey` hard-coding bug (fix in PR #13).
 - [x] [qa] **Seed↔runtime modelKey parity regression test** — DONE (PR #14): `__tests__/seedComps.spec.js` asserts every seed entry's key == `normalizeModelKey(make, model)`; pins the 5 originally-divergent models. Fails on any divergence.
-- [~] [ceo] **Emulator proof of `comps`/items rules** — IN PROGRESS via CI (cycle 7, `chore/cycle7-ci`): GitHub Actions runs the rules suite under the emulator with Java. Closes the local "no Java" gap. Acceptance: the CI run is green on the PR.
+- [x] [ceo] **Emulator proof of `comps`/items rules** — DONE via CI (PR #15, `f4f41e1`): GitHub Actions runs the rules suite under the emulator (Java 21); CI green at 120/120, 0 skipped. DoD #6 → 6/6.
 - [ ] [observer] **Live browser E2E** — sign up → add camera (photo) → see computed estimate → deal check → log a sale → export. Observer-owned (writes user data). Comps are seeded, so estimates populate.
+- [ ] [observer] **Real-collector validation** — the brief's success gate: 5–10 collectors use it on real collections; ≥3 say it beats their spreadsheet. Drives whether/which post-POC items to build.
 
 ### Unblocked polish
 
 - [x] [frontend] Drop the redundant `where('userId','==',uid)` in `store/items.js` `fetchItems` — DONE (PR #14).
 - [x] [frontend] Client polish — add-item validation + inline errors + submit-guard — DONE (PR #14). (Responsive ≥768px sweep deferred — low value pre-validation.)
-- [~] [ceo] Wire the emulator rules suite into CI — IN PROGRESS (cycle 7, `.github/workflows/ci.yml`).
+- [x] [ceo] Wire the emulator rules suite into CI — DONE (PR #15, `.github/workflows/ci.yml`).
 
 ## Later (POST-POC — do not start before DoD is met)
 

@@ -2,13 +2,18 @@
 
 > Newest entry at top. One short entry per cycle: what shipped, decisions, blockers, next.
 
-## Cycle 7 — CI (close the emulator-proof gap) (2026-06-13)
-- Added `.github/workflows/ci.yml`: lint + tests for both packages, and the Firestore **rules
-  suite under the emulator** (Temurin Java in the runner + `firebase-tools emulators:exec`),
-  mirroring cycle 4's local invocation. This **closes the DoD #6 gap** — the rules proof was
-  blocked locally by no Java; CI now runs it on every PR + push to main. Verifying the run is
-  green via `gh pr checks` before merge. Single-role infra → authored solo + reviewer-merged
-  (not a full team, per CLAUDE.md §1).
+## Cycle 7 — CI; POC complete at DoD 6/6 (2026-06-13)
+- Added `.github/workflows/ci.yml` (PR #15, merged `f4f41e1`): Node 20 + Temurin **Java 21**;
+  lint + tests both packages + the Firestore **rules suite under the emulator** (`firebase-tools
+  emulators:exec`), mirroring cycle 4's local invocation. **Closed the DoD #6 gap** — the rules
+  proof was blocked locally by no Java. CI run went green with **120/120, 0 skipped** (vs. 29
+  skipped locally), proving the rules suite executed under the emulator. (First run failed on
+  Java 17 — firebase-tools now needs JDK 21+; bumped and re-ran green.) Single-role infra →
+  authored solo + reviewer-merged (not a full team, per CLAUDE.md §1).
+- **Pivot POC is COMPLETE — DoD 6/6.** Autonomous build stopped here: every DoD item is met,
+  live comps are seeded, CI gates every PR. The remaining steps (live browser E2E, real-collector
+  validation) are observer-owned; post-POC features stay deferred until the thesis validates with
+  real collectors. Continuing to build now would be gold-plating an unvalidated thesis.
 
 ## Cycle 6 — Harden + polish (2026-06-13)
 - Ran as team `vault-cycle6` (be/fe/qa/reviewer, peer collaboration). Shipped (PR #14):
