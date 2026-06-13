@@ -13,7 +13,8 @@ build — read the gate tags. Run any real cycle as a **fresh Claude Team** (CLA
 
 ### Observer-gated / environment-blocked (cannot be self-served)
 
-- [ ] [observer/backend] **Run the comp seed against live Firebase** — `node product/server/scripts/seedComps.js` (needs `FIREBASE_SERVICE_ACCOUNT_PATH`). Until this runs, valuations return "no data" for everything, so the product isn't demonstrable. Writes reference data to the observer's live project → observer-gated unless the company is explicitly cleared to write live.
+- [x] [ceo] **Run the comp seed against live Firebase** — DONE 2026-06-13 (observer-authorized). 575 comps live, parity-verified. Found+fixed a seed `modelKey` hard-coding bug (fix in PR #13).
+- [ ] [qa] **Seed↔runtime modelKey parity regression test** — assert `normalizeModelKey(make, model)` equals each seed entry's resulting key (and/or that no seed comp has a key the runtime can't reproduce). Prevents recurrence of the 2026-06-13 bug. Acceptance: a test fails if any seed model's computed key diverges.
 - [ ] [observer] **Emulator proof of `comps`/items rules** — tests are written but need a Java/JRE env (or CI). The build session had no local Java. Acceptance: `emulators:exec` runs the rules suite green.
 - [ ] [observer] **Live browser E2E** — sign up → add camera (photo) → see computed estimate → deal check → log a sale → export. Observer-owned (writes user data).
 

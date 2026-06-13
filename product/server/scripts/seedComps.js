@@ -11,6 +11,11 @@ require('dotenv').config({
 const path = require('path')
 const fs = require('fs')
 const admin = require('firebase-admin')
+// modelKey MUST be derived from the same normalizer the client/server use at
+// runtime, or a user's computed key won't match the seeded comps (see the
+// 2026-06-13 seed-parity bug: hand-written keys like `hasselblad-500cm`
+// diverged from normalizeModelKey('Hasselblad','500C/M') = `hasselblad-500c-m`).
+const { normalizeModelKey } = require('../lib/valuation')
 
 // ---------------------------------------------------------------------------
 // Firebase init
@@ -35,7 +40,10 @@ const db = admin.firestore()
 const CONDITIONS = ['Mint', 'Excellent', 'Good', 'Fair', 'Poor']
 
 // ---------------------------------------------------------------------------
-// Seed data: [make, model, modelKey, baseGoodPrice, notes]
+// Seed data: [make, model, <legacy hand-key — IGNORED>, baseGoodPrice]
+// modelKey is NOT taken from this array; it is computed from make+model via
+// normalizeModelKey at build time so it always matches the runtime key. The 3rd
+// element is retained only to minimize churn and document the original intent.
 // baseGoodPrice = median Good-condition USD value (manually observed, 2024-2025)
 // ---------------------------------------------------------------------------
 
@@ -137,7 +145,8 @@ function buildComps() {
   // Split across multiple Firestore batches (max 500/batch)
   const COMPS_PER_TIER = 5
 
-  MODELS.forEach(([make, model, modelKey, baseGoodPrice], modelIdx) => {
+  MODELS.forEach(([make, model, , baseGoodPrice], modelIdx) => {
+    const modelKey = normalizeModelKey(make, model)
     CONDITIONS.forEach((condition, condIdx) => {
       const multiplier = MULTIPLIERS[condition]
       const basePrice = baseGoodPrice * multiplier
