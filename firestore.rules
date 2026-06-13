@@ -23,6 +23,35 @@ service cloud.firestore {
       }
     }
 
+    // comps — shared crowd-sourced sales dataset
+    // - Any authenticated user may read all comps.
+    // - Authenticated users may create a comp only when:
+    //     contributedBy == their uid  AND  status == 'user-submitted'
+    //     AND required fields are present and typed correctly.
+    // - Clients may NOT create seed or verified comps.
+    // - Clients may NOT update or delete any comp (POC: no moderation UI).
+    // - Unauthenticated access is denied entirely.
+    match /comps/{compId} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null
+                    && request.resource.data.contributedBy == request.auth.uid
+                    && request.resource.data.status == 'user-submitted'
+                    && request.resource.data.make is string
+                    && request.resource.data.make.size() > 0
+                    && request.resource.data.model is string
+                    && request.resource.data.model.size() > 0
+                    && request.resource.data.modelKey is string
+                    && request.resource.data.modelKey.size() > 0
+                    && request.resource.data.condition is string
+                    && request.resource.data.condition.size() > 0
+                    && request.resource.data.salePrice is number
+                    && request.resource.data.saleDate is string
+                    && request.resource.data.saleDate.size() > 0;
+
+      allow update, delete: if false;
+    }
+
     // logs — authed users may append; no reads, updates, or deletes
     match /logs/{logId} {
       allow create: if request.auth != null;

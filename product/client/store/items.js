@@ -6,6 +6,7 @@ import {
   where,
   getDocs,
   setDoc,
+  updateDoc,
   serverTimestamp,
 } from 'firebase/firestore'
 import {
@@ -18,11 +19,12 @@ import { v4 as uuidv4 } from 'uuid'
 import { db, auth } from '@/plugins/firebase'
 import http from '@/lib/http'
 import { createLog, LOG_SEVERITIES } from '@/lib/logger'
-import { replaceUndefinedInObject } from '@/lib/utils'
+import { replaceUndefinedInObject, normalizeModelKey } from '@/lib/utils'
 
 export const state = () => ({
   items: [],
   loading: false,
+  valuationPreview: null,
 })
 
 export const mutations = {
@@ -35,11 +37,26 @@ export const mutations = {
   SET_LOADING(state, val) {
     state.loading = val
   },
+  SET_VALUATION_PREVIEW(state, preview) {
+    Vue.set(state, 'valuationPreview', preview)
+  },
+  UPDATE_ITEM_ESTIMATED_VALUE(state, { itemId, estimatedValue }) {
+    const idx = state.items.findIndex((i) => i.id === itemId)
+    if (idx !== -1) {
+      Vue.set(state.items[idx], 'estimatedValue', estimatedValue)
+    }
+  },
 }
 
 export const getters = {
   totalValue: (state) =>
-    state.items.reduce((sum, item) => sum + (item.currentValue || 0), 0),
+    state.items.reduce((sum, item) => {
+      const effective =
+        item.userOverrideValue != null
+          ? item.userOverrideValue
+          : item.estimatedValue?.estimate ?? 0
+      return sum + effective
+    }, 0),
 }
 
 export const actions = {
@@ -48,7 +65,10 @@ export const actions = {
     if (!uid) return
     commit('SET_LOADING', true)
     try {
-      const q = query(collection(db, 'items'), where('userId', '==', uid))
+      const q = query(
+        collection(db, 'users', uid, 'items'),
+        where('userId', '==', uid)
+      )
       const snap = await getDocs(q)
       const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
       commit('SET_ITEMS', items)
@@ -64,9 +84,27 @@ export const actions = {
     }
   },
 
-  async addItem({ commit, rootGetters }, payload) {
-    // Accept either a flat payload { userId?, name?, make?, model?, currentValue?,
-    // photoFile?, ... } or the legacy { formData, photoFile } shape.
+  async fetchValuation({ commit }, { make, model, condition }) {
+    commit('SET_VALUATION_PREVIEW', null)
+    try {
+      const { data } = await http.get('/api/valuation', {
+        params: { make, model, condition },
+      })
+      commit('SET_VALUATION_PREVIEW', data)
+      return data
+    } catch (err) {
+      await createLog({
+        message: 'fetchValuation failed',
+        severity: LOG_SEVERITIES.ERROR,
+        addlData: { error: err.message, make, model, condition },
+      })
+      return null
+    }
+  },
+
+  async addItem({ commit, rootGetters, state: s }, payload) {
+    // Accept either a flat payload { userId?, make?, model?, photoFile?, ... }
+    // or the legacy { formData, photoFile } shape.
     const flat = payload.formData
       ? { ...payload.formData, photoFile: payload.photoFile }
       : payload
@@ -81,6 +119,14 @@ export const actions = {
         photoPath = await _uploadPhoto(uid, itemId, flat.photoFile)
       }
 
+      const mKey = normalizeModelKey(flat.make || '', flat.model || '')
+
+      // estimatedValue: use the preview if available, otherwise null
+      const estimatedValue =
+        flat.estimatedValue !== undefined
+          ? flat.estimatedValue
+          : s.valuationPreview || null
+
       const item = replaceUndefinedInObject({
         id: itemId,
         userId: uid,
@@ -88,17 +134,21 @@ export const actions = {
         name: flat.name || null,
         make: flat.make || null,
         model: flat.model || null,
+        modelKey: mKey || null,
         serial: flat.serial || null,
         condition: flat.condition || null,
         purchasePrice: flat.purchasePrice ? Number(flat.purchasePrice) : null,
         purchaseDate: flat.purchaseDate || null,
-        currentValue: flat.currentValue ? Number(flat.currentValue) : null,
+        estimatedValue: estimatedValue || null,
+        userOverrideValue: flat.userOverrideValue
+          ? Number(flat.userOverrideValue)
+          : null,
         photoPath,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
 
-      await setDoc(doc(db, 'items', itemId), item)
+      await setDoc(doc(db, 'users', uid, 'items', itemId), item)
       commit('ADD_ITEM', {
         ...item,
         createdAt: new Date(),
@@ -115,6 +165,43 @@ export const actions = {
       commit('SET_LOADING', false)
     }
   },
+
+  async refreshEstimate({ commit, state: s, rootGetters }, itemId) {
+    const uid = rootGetters['users/uid']
+    if (!uid) throw new Error('Not authenticated')
+
+    const item = s.items.find((i) => i.id === itemId)
+    if (!item) throw new Error(`Item ${itemId} not found in state`)
+
+    commit('SET_LOADING', true)
+    try {
+      const { data } = await http.get('/api/valuation', {
+        params: {
+          make: item.make,
+          model: item.model,
+          condition: item.condition,
+        },
+      })
+      const estimatedValue = data || null
+      // Write updated estimatedValue back to Firestore
+      await updateDoc(doc(db, 'users', uid, 'items', itemId), {
+        estimatedValue,
+        updatedAt: serverTimestamp(),
+      })
+      commit('UPDATE_ITEM_ESTIMATED_VALUE', { itemId, estimatedValue })
+      return estimatedValue
+    } catch (err) {
+      await createLog({
+        message: 'refreshEstimate failed',
+        severity: LOG_SEVERITIES.ERROR,
+        addlData: { error: err.message, itemId },
+      })
+      throw err
+    } finally {
+      commit('SET_LOADING', false)
+    }
+  },
+
   async exportInsurance({ commit, rootGetters }) {
     const uid = rootGetters['users/uid']
     if (!uid) throw new Error('Not authenticated')

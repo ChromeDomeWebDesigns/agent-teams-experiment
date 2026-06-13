@@ -28,6 +28,7 @@
               class="form-field__input"
               type="text"
               required
+              @input="debounceFetchValuation"
             />
           </div>
           <div class="form-field">
@@ -38,26 +39,20 @@
               class="form-field__input"
               type="text"
               required
+              @input="debounceFetchValuation"
             />
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-field">
-            <label class="form-field__label" for="serial">Serial Number</label>
-            <input
-              id="serial"
-              v-model="form.serial"
-              class="form-field__input"
-              type="text"
-            />
-          </div>
-          <div class="form-field">
-            <label class="form-field__label" for="condition">Condition</label>
+            <label class="form-field__label" for="condition">Condition *</label>
             <select
               id="condition"
               v-model="form.condition"
               class="form-field__input"
+              required
+              @change="debounceFetchValuation"
             >
               <option value="">— select —</option>
               <option value="Mint">Mint</option>
@@ -67,12 +62,89 @@
               <option value="Poor">Poor</option>
             </select>
           </div>
+          <div class="form-field">
+            <label class="form-field__label" for="serial">Serial Number</label>
+            <input
+              id="serial"
+              v-model="form.serial"
+              class="form-field__input"
+              type="text"
+            />
+          </div>
+        </div>
+
+        <!-- Valuation preview block -->
+        <div class="form-field valuation-preview">
+          <p class="form-field__label">Market Estimate</p>
+          <div class="valuation-preview__body">
+            <p v-if="valuationState === 'idle'" class="valuation-preview__idle">
+              Enter make, model, and condition to see an estimate.
+            </p>
+            <p
+              v-else-if="valuationState === 'loading'"
+              class="valuation-preview__loading"
+            >
+              <span class="loading-spinner" aria-hidden="true" />
+              Checking recent sales&hellip;
+            </p>
+            <template v-else-if="valuationState === 'ready'">
+              <p class="valuation-preview__estimate">
+                ~&nbsp;${{ fmtPrice(valuationPreview.estimate) }}
+                &nbsp;&nbsp;
+                <span class="valuation-preview__range">
+                  ${{ fmtPrice(valuationPreview.low) }}&nbsp;&ndash;&nbsp;${{
+                    fmtPrice(valuationPreview.high)
+                  }}
+                  range
+                </span>
+              </p>
+              <p class="valuation-preview__meta">
+                Based on {{ valuationPreview.sampleSize }} recent sales
+              </p>
+            </template>
+            <template v-else-if="valuationState === 'low-confidence'">
+              <p class="valuation-preview__estimate">
+                ~&nbsp;${{ fmtPrice(valuationPreview.estimate) }}
+                <span
+                  class="valuation-preview__warn"
+                  aria-label="Warning: limited data"
+                  >&#9888; limited data ({{
+                    valuationPreview.sampleSize
+                  }}
+                  sale{{ valuationPreview.sampleSize === 1 ? '' : 's' }})</span
+                >
+              </p>
+              <p class="valuation-preview__meta">
+                ${{ fmtPrice(valuationPreview.low) }}&nbsp;&ndash;&nbsp;${{
+                  fmtPrice(valuationPreview.high)
+                }}
+                range &mdash; treat as rough guide
+              </p>
+            </template>
+            <p
+              v-else-if="valuationState === 'no-data'"
+              class="valuation-preview__no-data"
+            >
+              No sales data yet for this model. We&rsquo;ll track it as the
+              dataset grows. You can add an override value after saving.
+            </p>
+            <p
+              v-else-if="valuationState === 'error'"
+              class="valuation-preview__error"
+            >
+              Could not load estimate &mdash; check your connection. You can
+              save the item and check back later.
+            </p>
+          </div>
         </div>
 
         <div class="form-row">
           <div class="form-field">
             <label class="form-field__label" for="purchasePrice">
               Purchase Price ($)
+              <span class="form-field__label-note"
+                >What you paid — optional</span
+              >
             </label>
             <input
               id="purchasePrice"
@@ -84,34 +156,20 @@
             />
           </div>
           <div class="form-field">
-            <label class="form-field__label" for="currentValue">
-              Current Value ($)
+            <label class="form-field__label" for="purchaseDate">
+              Purchase Date
             </label>
             <input
-              id="currentValue"
-              v-model="form.currentValue"
+              id="purchaseDate"
+              v-model="form.purchaseDate"
               class="form-field__input"
-              type="number"
-              min="0"
-              step="0.01"
+              type="date"
             />
           </div>
         </div>
 
         <div class="form-field">
-          <label class="form-field__label" for="purchaseDate">
-            Purchase Date
-          </label>
-          <input
-            id="purchaseDate"
-            v-model="form.purchaseDate"
-            class="form-field__input"
-            type="date"
-          />
-        </div>
-
-        <div class="form-field">
-          <label class="form-field__label" for="photo">Photo</label>
+          <label class="form-field__label" for="photo">Photo *</label>
           <input
             id="photo"
             class="form-field__input form-field__input--file"
@@ -120,6 +178,16 @@
             @change="handleFileChange"
           />
           <p v-if="photoFile" class="form-field__hint">{{ photoFile.name }}</p>
+        </div>
+
+        <div class="form-field">
+          <label class="form-field__label" for="notes">Notes</label>
+          <textarea
+            id="notes"
+            v-model="form.notes"
+            class="form-field__input form-field__input--textarea"
+            maxlength="1000"
+          />
         </div>
 
         <p v-if="errorMessage" class="item-form__error">{{ errorMessage }}</p>
@@ -163,11 +231,14 @@ export default {
         serial: '',
         condition: '',
         purchasePrice: '',
-        currentValue: '',
         purchaseDate: '',
+        notes: '',
       },
       photoFile: null,
       errorMessage: null,
+      // local valuation state: 'idle' | 'loading' | 'ready' | 'low-confidence' | 'no-data' | 'error'
+      valuationState: 'idle',
+      valuationPreview: null,
     }
   },
 
@@ -180,17 +251,87 @@ export default {
       this.photoFile = e.target.files[0] || null
     },
 
+    debounceFetchValuation() {
+      if (this._debounceTimer) clearTimeout(this._debounceTimer)
+      this._debounceTimer = setTimeout(() => {
+        this._triggerValuationFetch()
+      }, 600)
+    },
+
+    async _triggerValuationFetch() {
+      const { make, model, condition } = this.form
+      if (!make || !model || !condition) {
+        this.valuationState = 'idle'
+        this.valuationPreview = null
+        return
+      }
+      this.valuationState = 'loading'
+      this.valuationPreview = null
+      try {
+        const result = await this.$store.dispatch('items/fetchValuation', {
+          make,
+          model,
+          condition,
+        })
+        if (!result || result.sampleSize === 0) {
+          this.valuationState = 'no-data'
+          this.valuationPreview = result || null
+        } else if (result.sampleSize < 3) {
+          this.valuationState = 'low-confidence'
+          this.valuationPreview = result
+        } else {
+          this.valuationState = 'ready'
+          this.valuationPreview = result
+        }
+      } catch (_err) {
+        this.valuationState = 'error'
+        this.valuationPreview = null
+      }
+    },
+
     async handleSubmit() {
       this.errorMessage = null
+
+      // If still loading valuation, wait up to 3s then proceed regardless
+      if (this.valuationState === 'loading') {
+        await Promise.race([
+          new Promise((resolve) => {
+            const poll = setInterval(() => {
+              if (this.valuationState !== 'loading') {
+                clearInterval(poll)
+                resolve()
+              }
+            }, 100)
+          }),
+          new Promise((resolve) => setTimeout(resolve, 3000)),
+        ])
+      }
+
+      const estimatedValue =
+        this.valuationPreview && this.valuationPreview.sampleSize > 0
+          ? this.valuationPreview
+          : null
+
       try {
         await this.$store.dispatch('items/addItem', {
-          formData: this.form,
+          formData: {
+            ...this.form,
+            estimatedValue,
+          },
           photoFile: this.photoFile,
         })
         this.$emit('saved')
-      } catch (err) {
+      } catch (_err) {
         this.errorMessage = 'Failed to save item. Please try again.'
       }
+    },
+
+    fmtPrice(val) {
+      if (val == null) return '—'
+      return Number(val).toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      })
     },
   },
 }
@@ -278,6 +419,15 @@ export default {
     font-size: 0.875rem;
     font-weight: 600;
     color: $color-text;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__label-note {
+    font-weight: 400;
+    font-size: 0.75rem;
+    color: $color-text-muted;
   }
 
   &__input {
@@ -296,11 +446,83 @@ export default {
     &--file {
       padding: $spacing-xs;
     }
+
+    &--textarea {
+      resize: vertical;
+      min-height: 80px;
+      font-family: inherit;
+    }
   }
 
   &__hint {
     font-size: 0.8rem;
     color: $color-text-muted;
+  }
+}
+
+// Valuation preview block
+.valuation-preview {
+  border: 1px solid $color-border;
+  border-radius: $border-radius;
+  background: $color-bg;
+  padding: $spacing-md;
+
+  &__body {
+    margin-top: $spacing-xs;
+  }
+
+  &__idle {
+    font-size: 0.8rem;
+    color: $color-text-muted;
+    font-style: italic;
+    margin: 0;
+  }
+
+  &__loading {
+    font-size: 0.875rem;
+    color: $color-text-muted;
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    margin: 0;
+  }
+
+  &__estimate {
+    font-size: 1rem;
+    font-weight: 700;
+    color: $color-primary;
+    margin: 0 0 2px;
+  }
+
+  &__range {
+    font-size: 0.8rem;
+    color: $color-text-muted;
+    font-weight: 400;
+  }
+
+  &__meta {
+    font-size: 0.8rem;
+    color: $color-text-muted;
+    margin: 0;
+  }
+
+  &__warn {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: $color-at-market;
+    margin-left: 4px;
+  }
+
+  &__no-data {
+    font-size: 0.875rem;
+    color: $color-text-muted;
+    margin: 0;
+  }
+
+  &__error {
+    font-size: 0.875rem;
+    color: $color-accent;
+    margin: 0;
   }
 }
 
@@ -331,6 +553,23 @@ export default {
     background: transparent;
     color: $color-text-muted;
     border: 1px solid $color-border;
+  }
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid $color-border;
+  border-top-color: $color-accent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

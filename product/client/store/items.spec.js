@@ -1,10 +1,10 @@
 import Vuex from 'vuex'
 import { createLocalVue } from '@vue/test-utils'
 
-// Mock @/lib/http so exportInsurance never hits a real server
+// Mock @/lib/http so exportInsurance and fetchValuation never hit a real server
 jest.mock('@/lib/http', () => ({
   __esModule: true,
-  default: { get: jest.fn() },
+  default: { get: jest.fn(), post: jest.fn() },
 }))
 
 // Mock firebase/firestore before importing the store
@@ -15,6 +15,7 @@ jest.mock('firebase/firestore', () => ({
   where: jest.fn(),
   getDocs: jest.fn(),
   setDoc: jest.fn(),
+  updateDoc: jest.fn(),
   serverTimestamp: jest.fn(() => ({ _type: 'serverTimestamp' })),
 }))
 
@@ -72,20 +73,21 @@ describe('store/items', () => {
   })
 
   describe('state shape', () => {
-    it('initialises with an empty items array and loading false', () => {
+    it('initialises with an empty items array, loading false, and valuationPreview null', () => {
       const store = makeStore()
       expect(store.state.items.items).toEqual([])
       expect(store.state.items.loading).toBe(false)
+      expect(store.state.items.valuationPreview).toBeNull()
     })
   })
 
   describe('totalValue getter', () => {
-    it('sums currentValue across all items', () => {
+    it('sums estimatedValue.estimate across all items', () => {
       const store = makeStore()
       store.commit('items/SET_ITEMS', [
-        { id: '1', currentValue: 250 },
-        { id: '2', currentValue: 80 },
-        { id: '3', currentValue: 15.5 },
+        { id: '1', estimatedValue: { estimate: 250 } },
+        { id: '2', estimatedValue: { estimate: 80 } },
+        { id: '3', estimatedValue: { estimate: 15.5 } },
       ])
       expect(store.getters['items/totalValue']).toBeCloseTo(345.5)
     })
@@ -95,18 +97,31 @@ describe('store/items', () => {
       expect(store.getters['items/totalValue']).toBe(0)
     })
 
-    it('treats missing currentValue as 0', () => {
+    it('treats missing estimatedValue as 0', () => {
       const store = makeStore()
       store.commit('items/SET_ITEMS', [
-        { id: '1', currentValue: 100 },
+        { id: '1', estimatedValue: { estimate: 100 } },
         { id: '2' },
       ])
       expect(store.getters['items/totalValue']).toBe(100)
     })
+
+    it('prefers userOverrideValue over estimatedValue.estimate', () => {
+      const store = makeStore()
+      store.commit('items/SET_ITEMS', [
+        {
+          id: '1',
+          estimatedValue: { estimate: 1000 },
+          userOverrideValue: 1200,
+        },
+        { id: '2', estimatedValue: { estimate: 300 } },
+      ])
+      expect(store.getters['items/totalValue']).toBe(1500)
+    })
   })
 
   describe('fetchItems action', () => {
-    it('queries Firestore with where userId == uid and populates state', async () => {
+    it('queries Firestore and populates state', async () => {
       const {
         getDocs,
         query,
@@ -122,7 +137,7 @@ describe('store/items', () => {
             id: 'doc-1',
             data: () => ({
               make: 'Leica',
-              currentValue: 1200,
+              estimatedValue: { estimate: 1200 },
               userId: 'uid-test',
             }),
           },
@@ -130,7 +145,7 @@ describe('store/items', () => {
             id: 'doc-2',
             data: () => ({
               make: 'Nikon',
-              currentValue: 400,
+              estimatedValue: { estimate: 400 },
               userId: 'uid-test',
             }),
           },
@@ -216,21 +231,24 @@ describe('store/items', () => {
   })
 
   describe('addItem action', () => {
-    it('writes a doc with userId, currentValue, and serverTimestamp', async () => {
-      const {
-        setDoc,
-        doc,
-        collection,
-        serverTimestamp,
-      } = require('firebase/firestore')
-      collection.mockReturnValue('items-col')
+    it('writes a doc with userId, modelKey, estimatedValue, and serverTimestamp', async () => {
+      const { setDoc, doc, serverTimestamp } = require('firebase/firestore')
       doc.mockReturnValue({})
       serverTimestamp.mockReturnValue({ _type: 'serverTimestamp' })
       setDoc.mockResolvedValueOnce()
 
       const store = makeStore()
       await store.dispatch('items/addItem', {
-        formData: { make: 'Leica', model: 'M6', currentValue: '1200' },
+        formData: {
+          make: 'Leica',
+          model: 'M6',
+          estimatedValue: {
+            estimate: 1200,
+            low: 900,
+            high: 1500,
+            sampleSize: 5,
+          },
+        },
         photoFile: null,
       })
 
@@ -238,21 +256,21 @@ describe('store/items', () => {
         expect.anything(),
         expect.objectContaining({
           userId: 'uid-test',
-          currentValue: 1200,
+          modelKey: 'leica-m6',
+          estimatedValue: expect.objectContaining({ estimate: 1200 }),
           createdAt: expect.anything(),
         })
       )
     })
 
     it('appends the new item to state after a successful write', async () => {
-      const { setDoc, doc, collection } = require('firebase/firestore')
-      collection.mockReturnValue('items-col')
+      const { setDoc, doc } = require('firebase/firestore')
       doc.mockReturnValue({})
       setDoc.mockResolvedValueOnce()
 
       const store = makeStore()
       await store.dispatch('items/addItem', {
-        formData: { make: 'Canon', currentValue: '300' },
+        formData: { make: 'Canon', model: 'AE-1' },
         photoFile: null,
       })
 
@@ -264,14 +282,13 @@ describe('store/items', () => {
     })
 
     it('resets loading to false after a successful addItem', async () => {
-      const { setDoc, doc, collection } = require('firebase/firestore')
-      collection.mockReturnValue('items-col')
+      const { setDoc, doc } = require('firebase/firestore')
       doc.mockReturnValue({})
       setDoc.mockResolvedValueOnce()
 
       const store = makeStore()
       await store.dispatch('items/addItem', {
-        formData: { make: 'Canon', currentValue: '300' },
+        formData: { make: 'Canon', model: 'AE-1' },
         photoFile: null,
       })
 
@@ -286,8 +303,7 @@ describe('store/items', () => {
     })
 
     it('calls createLog on error and rethrows', async () => {
-      const { setDoc, doc, collection } = require('firebase/firestore')
-      collection.mockReturnValue('items-col')
+      const { setDoc, doc } = require('firebase/firestore')
       doc.mockReturnValue({})
       setDoc.mockRejectedValueOnce(new Error('permission-denied'))
 
@@ -296,7 +312,7 @@ describe('store/items', () => {
 
       await expect(
         store.dispatch('items/addItem', {
-          formData: { make: 'Leica', currentValue: '500' },
+          formData: { make: 'Leica', model: 'M3' },
           photoFile: null,
         })
       ).rejects.toThrow()
@@ -307,8 +323,7 @@ describe('store/items', () => {
     })
 
     it('resets loading to false even when addItem throws', async () => {
-      const { setDoc, doc, collection } = require('firebase/firestore')
-      collection.mockReturnValue('items-col')
+      const { setDoc, doc } = require('firebase/firestore')
       doc.mockReturnValue({})
       setDoc.mockRejectedValueOnce(new Error('fail'))
 
@@ -318,6 +333,23 @@ describe('store/items', () => {
         .catch(() => {})
 
       expect(store.state.items.loading).toBe(false)
+    })
+
+    it('normalizes modelKey from make and model', async () => {
+      const { setDoc, doc } = require('firebase/firestore')
+      doc.mockReturnValue({})
+      setDoc.mockResolvedValueOnce()
+
+      const store = makeStore()
+      await store.dispatch('items/addItem', {
+        formData: { make: 'Canon', model: 'AE-1' },
+        photoFile: null,
+      })
+
+      expect(setDoc).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ modelKey: 'canon-ae-1' })
+      )
     })
   })
 

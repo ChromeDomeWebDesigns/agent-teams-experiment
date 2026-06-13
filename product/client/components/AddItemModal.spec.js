@@ -1,8 +1,7 @@
 import { shallowMount, createLocalVue } from '@vue/test-utils'
 import Vuex from 'vuex'
 
-// Firebase stubs — required because AddItemModal imports the items store
-// module indirectly via the Vuex store we wire up.
+// Firebase stubs
 jest.mock('firebase/firestore', () => ({
   collection: jest.fn(),
   doc: jest.fn(),
@@ -10,6 +9,7 @@ jest.mock('firebase/firestore', () => ({
   where: jest.fn(),
   getDocs: jest.fn(),
   setDoc: jest.fn(),
+  updateDoc: jest.fn(),
   serverTimestamp: jest.fn(() => ({ _type: 'serverTimestamp' })),
 }))
 jest.mock('firebase/storage', () => ({
@@ -24,7 +24,7 @@ jest.mock('@/plugins/firebase', () => ({
 }))
 jest.mock('@/lib/http', () => ({
   __esModule: true,
-  default: { get: jest.fn() },
+  default: { get: jest.fn(), post: jest.fn() },
 }))
 jest.mock('@/lib/logger', () => ({
   createLog: jest.fn(),
@@ -36,20 +36,25 @@ localVue.use(Vuex)
 
 /**
  * Build a minimal Vuex store that exposes the state properties AddItemModal
- * actually reads: `items/loading`. The `addItem` action is replaceable so
- * individual tests can control resolve/reject.
+ * actually reads: `items/loading`. The `addItem` and `fetchValuation` actions
+ * are replaceable so individual tests can control resolve/reject.
  */
 function makeStore({
   loading = false,
   addItem = jest.fn().mockResolvedValue(),
+  fetchValuation = jest.fn().mockResolvedValue(null),
 } = {}) {
   return new Vuex.Store({
     modules: {
       items: {
         namespaced: true,
-        state: () => ({ items: [], loading }),
-        mutations: {},
-        actions: { addItem },
+        state: () => ({ items: [], loading, valuationPreview: null }),
+        mutations: {
+          SET_VALUATION_PREVIEW(state, val) {
+            state.valuationPreview = val
+          },
+        },
+        actions: { addItem, fetchValuation },
         getters: { totalValue: () => 0 },
       },
       users: {
@@ -77,6 +82,11 @@ describe('AddItemModal component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    jest.useFakeTimers()
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
   })
 
   // -------------------------------------------------------------------------
@@ -115,12 +125,36 @@ describe('AddItemModal component', () => {
       expect(wrapper.find('input#serial').exists()).toBe(true)
     })
 
-    it('renders a currentValue input field', () => {
+    it('does NOT render a currentValue input field', () => {
       const wrapper = shallowMount(AddItemModal, {
         localVue,
         store: makeStore(),
       })
-      expect(wrapper.find('input#currentValue').exists()).toBe(true)
+      expect(wrapper.find('input#currentValue').exists()).toBe(false)
+    })
+
+    it('renders a condition select field', () => {
+      const wrapper = shallowMount(AddItemModal, {
+        localVue,
+        store: makeStore(),
+      })
+      expect(wrapper.find('select#condition').exists()).toBe(true)
+    })
+
+    it('renders the valuation preview block', () => {
+      const wrapper = shallowMount(AddItemModal, {
+        localVue,
+        store: makeStore(),
+      })
+      expect(wrapper.find('.valuation-preview').exists()).toBe(true)
+    })
+
+    it('shows idle state in valuation preview initially', () => {
+      const wrapper = shallowMount(AddItemModal, {
+        localVue,
+        store: makeStore(),
+      })
+      expect(wrapper.find('.valuation-preview__idle').exists()).toBe(true)
     })
 
     it('renders a submit button labelled "Save Item" when not loading', () => {
@@ -160,7 +194,6 @@ describe('AddItemModal component', () => {
         localVue,
         store: makeStore({ loading: true }),
       })
-      // Cancel button is type="button" with @click="$emit('close')"
       const cancelBtn = wrapper.find('button.btn--ghost')
       expect(cancelBtn.attributes('disabled')).toBeDefined()
     })
@@ -222,23 +255,41 @@ describe('AddItemModal component', () => {
       )
     })
 
-    it('dispatches items/addItem with formData containing the entered currentValue', async () => {
+    it('dispatches items/addItem with formData that does NOT include currentValue', async () => {
       const addItem = jest.fn().mockResolvedValue()
       const wrapper = shallowMount(AddItemModal, {
         localVue,
         store: makeStore({ addItem }),
       })
 
-      await wrapper.find('input#currentValue').setValue('1200')
+      await wrapper.find('input#make').setValue('Canon')
       await wrapper.find('form').trigger('submit')
       await wrapper.vm.$nextTick()
 
       expect(addItem).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          formData: expect.objectContaining({
+          formData: expect.not.objectContaining({
             currentValue: expect.anything(),
           }),
+        })
+      )
+    })
+
+    it('dispatches items/addItem with formData including estimatedValue key', async () => {
+      const addItem = jest.fn().mockResolvedValue()
+      const wrapper = shallowMount(AddItemModal, {
+        localVue,
+        store: makeStore({ addItem }),
+      })
+
+      await wrapper.find('form').trigger('submit')
+      await wrapper.vm.$nextTick()
+
+      expect(addItem).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          formData: expect.objectContaining({ estimatedValue: null }),
         })
       )
     })
@@ -303,6 +354,49 @@ describe('AddItemModal component', () => {
       await wrapper.vm.$nextTick()
 
       expect(wrapper.emitted('saved')).toBeFalsy()
+    })
+  })
+
+  // -------------------------------------------------------------------------
+  // Valuation preview debounce
+  // -------------------------------------------------------------------------
+  describe('valuation preview', () => {
+    it('does not dispatch fetchValuation while fields are incomplete', async () => {
+      const fetchValuation = jest.fn().mockResolvedValue(null)
+      const wrapper = shallowMount(AddItemModal, {
+        localVue,
+        store: makeStore({ fetchValuation }),
+      })
+
+      await wrapper.find('input#make').setValue('Leica')
+      // model and condition still empty — no dispatch expected
+      jest.runAllTimers()
+      await wrapper.vm.$nextTick()
+
+      expect(fetchValuation).not.toHaveBeenCalled()
+    })
+
+    it('dispatches fetchValuation once all three fields are filled after debounce', async () => {
+      const fetchValuation = jest.fn().mockResolvedValue(null)
+      const wrapper = shallowMount(AddItemModal, {
+        localVue,
+        store: makeStore({ fetchValuation }),
+      })
+
+      await wrapper.find('input#make').setValue('Leica')
+      await wrapper.find('input#model').setValue('M3')
+      await wrapper.find('select#condition').setValue('Excellent')
+      jest.runAllTimers()
+      await wrapper.vm.$nextTick()
+
+      expect(fetchValuation).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          make: 'Leica',
+          model: 'M3',
+          condition: 'Excellent',
+        })
+      )
     })
   })
 })

@@ -23,6 +23,17 @@ single source of truth for how the company operates and how code is written.
   `product-manager`, `product-designer`, `frontend-engineer`, `backend-engineer`,
   `qa-engineer`, `code-reviewer`. Spawn them by agent type, e.g.
   *"spawn a teammate using the `frontend-engineer` agent type."*
+- **ALWAYS operate as a Claude Team (experimental feature) — this is mandatory, not optional.**
+  Every cycle that spawns more than one teammate MUST run them as a real team: create the team
+  with `TeamCreate` (one team at a time, flat/depth-1), drive a **shared task list**
+  (`TaskCreate`/`TaskUpdate`), and spawn each teammate into that team (Agent `team_name` +
+  `name`). Do **not** run isolated one-shot subagents in a hub-and-spoke pattern where every
+  message routes through the CEO. Teammates are expected to **collaborate directly** —
+  peer-to-peer `SendMessage` (e.g. frontend ↔ backend reconciling an API contract; qa →
+  the owning engineer to fix a defect; reviewer → author for change requests) — while the CEO
+  orchestrates, assigns/sequences tasks, and integrates. File-ownership-by-layer (§3) still
+  holds so peers don't edit the same files. A single short-lived helper (e.g. one Explore pass)
+  may still run solo, but any real multi-role increment runs as a team.
 - **Durable memory lives on disk, not in the team.** Team/task state is wiped when the
   session ends, so the company's real memory is this git repo + the `company/` docs. Every
   work cycle reconstructs context by reading `company/STATE.md` and `git log`.
