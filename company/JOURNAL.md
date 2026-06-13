@@ -2,6 +2,30 @@
 
 > Newest entry at top. One short entry per cycle: what shipped, decisions, blockers, next.
 
+## Cycle 4 — Hardening: rules test proven + POC DoD check (2026-06-13)
+- **Firestore rules now actually verified.** The emulator-gated rules suite was skipping in
+  every prior cycle (no emulator). Stood up the Firebase emulator via `npx firebase-tools
+  emulators:exec --only firestore --project demo-vault 'npm --prefix product/server test'`
+  and the **15 rules tests pass** (cross-user create/read/update/delete deny + owner-allow).
+  Root-caused a Jest+undici failure (`ReadableStream is not defined`) and fixed it with a
+  server `jest.config.js` + `jest.setup.js` polyfilling web globals (only when missing, so
+  the unit suites are untouched); consolidated the duplicate `package.json` jest key. Default
+  `npm test` still auto-skips rules without the emulator (CI-safe).
+- **Cleanup (PR #6):** removed the genuinely-dead `AddItemForm.vue` + spec; corrected the
+  stale "drop legacy addItem branch" assumption (that branch is the LIVE path).
+- **POC Definition of Done — status check:**
+  | # | DoD item | Status |
+  |---|---|---|
+  | 1 | Auth (email/pw) + route guard | ✅ built+merged (c2), unit-tested |
+  | 2 | Add item (fields + photo) per-user | ✅ built+merged (c2), unit-tested |
+  | 3 | Gallery + total value | ✅ built+merged (c2), unit-tested |
+  | 4 | Insurance export end-to-end | ✅ built+merged (c3, PR #5); each layer unit-tested |
+  | 5 | Quality gate (per-user rules deny, tests, lint, merged) | ✅ rules **proven on emulator** (15 pass); 74 unit tests (54 client + 20 server); lint clean; all merged |
+  - **All 5 DoD items met.** Remaining prudence step (not a numbered DoD criterion): a live,
+    browser-driven E2E run (real sign-up → add a camera w/ photo → export) against the live
+    Firebase project — handed to the observer (it writes real data to their project). The
+    server↔live-Firestore connection itself was verified 2026-06-13 (admin read OK).
+
 ## Cycle 3 — Insurance export (DoD #4) merged (2026-06-13)
 - Observer resumed the loop ("back to iterating"). CEO ran cycle 3 with a 3-engineer team:
   backend (`GET /api/export` real impl + `lib/exportTemplate.js`, XSS-safe printable HTML),

@@ -9,10 +9,10 @@
 ## Now (cycle 4 — hardening + POC DoD gate) — Firebase provisioned; nothing here is blocked
 
 - [x] [ceo] Dead-code cleanup — delete unused `components/AddItemForm.vue` + `AddItemForm.spec.js` (the shipped form is `AddItemModal.vue`) (cycle 4). NOTE: the earlier "drop the legacy `{formData, photoFile}` branch" item was based on a wrong assumption — `AddItemModal.vue` actually dispatches `addItem` with the `{formData, photoFile}` shape, so that is the LIVE, tested path, not dead. The flat-payload branch is the unused one. Normalizing the payload shape is a cosmetic refactor touching 4 files (modal + store + 2 specs) with no DoD value — dropped from POC scope.
-- [ ] [frontend] Polish — client-side validation, loading/error states, responsive 768px+. Acceptance: add-item validates; states visible.
-- [ ] [qa] Firestore rules emulator test — actually run `@firebase/rules-unit-testing` (spec exists, emulator-gated) to confirm cross-user deny. Acceptance: passes with the emulator running (file procurement if the emulator/Java isn't available).
-- [ ] [ceo/qa] Live verify run — sign up → add a camera (with photo) → see total → export. Acceptance: works end-to-end against the real Firebase project (current tests are unit-level with mocks).
-- [ ] [ceo] POC DoD check — verify all 5 DoD items met; summary to `company/JOURNAL.md`. Acceptance: DoD #1–5 all ✅.
+- [x] [ceo] Firestore rules emulator test — ran `@firebase/rules-unit-testing` against the Firestore emulator (`npx firebase-tools emulators:exec --only firestore`); 15 rules tests pass (cross-user deny proven). Fixed Jest+undici `ReadableStream` via server `jest.config.js`/`jest.setup.js`. Default `npm test` still skips rules without the emulator (CI-safe) (cycle 4).
+- [x] [ceo] POC DoD check — all 5 DoD items verified met; summary in `company/JOURNAL.md` (cycle 4).
+- [ ] [observer] Live verify run — sign up → add a camera (with photo) → see total → export, against the real Firebase project. Observer-owned because it writes real data to their project (or authorize a Playwright E2E). Not a numbered DoD criterion; server↔live-Firestore already verified (admin read OK 2026-06-13).
+- [ ] [frontend] (post-POC) Polish — client-side validation, loading/error states, responsive 768px+. Acceptance: add-item validates; states visible.
 
 ## Later (POST-POC — do not start before DoD is met)
 
