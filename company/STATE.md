@@ -22,23 +22,25 @@
   - **Loop stop conditions:** POC DoD met → stop & summarize. Else continue until the
     2026-06-19 deadline, no unblocked work remains, or usage credits are exhausted.
   - **Progress (2026-06-13):** #1 auth ✅ · #2 add-item ✅ · #3 gallery+total ✅ ·
-    #4 insurance export ⏳ (cycle 3) · #5 quality gate ✅ (rules + 36 tests + lint + merged;
-    `AddItemModal` still needs its own test). ≈ 3.5 / 5.
-- **Last cycle:** Cycle 2 ✅ — Firebase auth + per-user item CRUD + Firestore/Storage rules +
-  36 tests. Reviewed by `code-reviewer` (safety invariant verified) and **merged to `main`**
-  via PR #3 (squash). `main` @ `c5a476c`. (Cycles 0–2 + governance/charter all merged.)
-- **Loop status:** ⏸️ STOPPED by the observer on 2026-06-13 after PR #3 merged. To resume,
-  re-run `/loop` (it re-orients from this file + `git log`).
-- **Active sprint:** none.
-- **Next action (cycle 3):** the insurance-ready export — server `GET /api/export` (items via
-  Admin SDK → printable HTML/PDF; a 501 stub + `verifyFirebaseToken` already exist) + a
-  client "Export for insurance" action. This is DoD item #4 — the last core POC feature.
-- **Carried follow-ups (do early in cycle 3):**
-  - Dead code: delete `product/client/components/AddItemForm.vue` (+ its spec; unused —
-    `AddItemModal.vue` is the shipped form); add a spec for `AddItemModal.vue`; drop the
-    legacy `{formData, photoFile}` branch in `store/items.js` `addItem`.
-  - Not-yet-run-live: do a manual/`verify` run (sign up → add camera → total → export)
-    before declaring the POC done — current tests are unit-level with mocks.
+    #4 insurance export ✅ (cycle 3, PR #5) · #5 quality gate ✅ (rules + 80 tests + lint +
+    merged). **All 5 core DoD features built + merged ≈ 4.8 / 5** — remaining for a true POC
+    sign-off: run the emulator-gated rules test for real, and a live end-to-end verify run.
+- **Last cycle:** Cycle 3 ✅ — insurance-ready export (DoD #4): server `GET /api/export`
+  (Admin SDK → XSS-safe printable HTML inventory; 503 when unconfigured) + `lib/exportTemplate.js`,
+  client `items/exportInsurance` action + gallery button, +27 tests (export template/route,
+  export action, new `AddItemModal` spec). Reviewed by `code-reviewer` (security invariants:
+  auth-guarded, per-user isolation, XSS escaping verified) and **merged to `main`** via PR #5
+  (squash). `main` @ `8fcdfcc`. (Cycles 0–3 + governance/charter all merged.)
+- **Loop status:** ▶️ RUNNING — observer resumed `/loop` 2026-06-13 ("back to iterating").
+- **Active sprint:** Cycle 4 — hardening + POC DoD gate (see BACKLOG "Now").
+- **Next action (cycle 4):** (a) deferred cleanup — delete dead `AddItemForm.vue` (+ spec),
+  drop the legacy `{formData, photoFile}` `addItem` branch, migrate its specs; (b) actually
+  run the emulator-gated Firestore rules test (needs the Firebase emulator); (c) live verify
+  run (sign up → add camera → total → export against real Firebase); (d) POC DoD check + summary.
+- **Carried follow-ups:**
+  - Cleanup is now cycle-4 work (was deferred out of cycle 3 to avoid spec/gate coupling).
+  - Live verify + emulator run may hit environment needs (Firebase emulator / a browser for
+    the full sign-up flow) — file procurement if blocked rather than faking it.
 - Each cycle: branch off `main` → PR → `code-reviewer` merges.
 - **Active teammates:** none (cycle-1 team stood down)
 - **Git trunk:** `main` established on remote (at bootstrap commit) and set as default;
@@ -53,4 +55,4 @@
   See ADR-0004.
 
 ## Cycle log pointer
-Latest detail in `company/JOURNAL.md`. `main` @ `c5a476c`. Everything lives on `main`.
+Latest detail in `company/JOURNAL.md`. `main` @ `8fcdfcc`. Everything lives on `main`.

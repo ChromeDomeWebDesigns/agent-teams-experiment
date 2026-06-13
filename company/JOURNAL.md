@@ -2,6 +2,20 @@
 
 > Newest entry at top. One short entry per cycle: what shipped, decisions, blockers, next.
 
+## Cycle 3 — Insurance export (DoD #4) merged (2026-06-13)
+- Observer resumed the loop ("back to iterating"). CEO ran cycle 3 with a 3-engineer team:
+  backend (`GET /api/export` real impl + `lib/exportTemplate.js`, XSS-safe printable HTML),
+  frontend (`items/exportInsurance` action + gallery button), qa (export template/route +
+  export action tests + a new `AddItemModal` spec). Reviewed + squash-merged by the
+  independent `code-reviewer` as **PR #5** → `main` @ `8fcdfcc`.
+- CEO integration catch: export template read `item.serialNumber`; canonical field is `serial`
+  (schema/form/store) — fixed inline + a regression test added. Gate green: lint clean both
+  packages, server 20 pass (+15 emulator-skipped), client 60 pass.
+- **Scope call:** deferred the dead-code/legacy-`addItem`-branch cleanup to cycle 4 — it's
+  coupled to `items.spec.js` and bundling it risked mid-cycle gate races. DoD #4 shipped clean.
+- All 5 core POC features now built + merged (~4.8/5). Remaining for true sign-off: run the
+  emulator-gated rules test for real + a live end-to-end verify. Next: cycle 4 hardening.
+
 ## Cycle 2 merged + loop stopped (2026-06-13)
 - Cycle 2 (Firebase auth + per-user item CRUD + Firestore/Storage rules + 36 tests) reviewed
   by the independent reviewer (safety invariant verified: no secret client-exposed; rules
