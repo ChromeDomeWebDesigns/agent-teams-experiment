@@ -3,7 +3,47 @@
 > One short entry per non-trivial decision. Newest at top.
 > Format: ID · date · decision · context/why · consequences.
 
+## ADR-0006 · 2026-06-13 · PIVOT — from a collection ledger to a market-aware collection
+- **Decision:** Pivot the product. Stop building "Vault" as a place to *store* a collection
+  (catalog → list → insurance PDF). Build the thing that **knows what a collection is worth
+  and what's moving in the market**: a *living, comp-backed valuation* per item + total
+  ("what's it worth today?") and a *"good buy?" deal check* ("is this listing fair?"), both
+  powered by a **crowd-sourced sales dataset** (seed a curated set, then users contribute and
+  correct). Insurance export is retained but **demoted to a byproduct** of accurate values,
+  not the differentiator. Beachhead unchanged: vintage cameras/lenses; model stays
+  category-extensible. This is a **re-direction onto the cycle 1–4 substrate, not a rewrite.**
+- **Why:** The observer rejected the shipped POC: *"This is a CRUD example app… data entry and
+  storage is not a solution. Customers are in spreadsheets because spreadsheets solve data
+  entry."* They are right, and **our own ADR-0002 discovery proves it**: we named CardLadder
+  (cards), Discogs (vinyl), BrickLink (LEGO) as the served comparables, then copied the
+  *commodity half* (the inventory list) and skipped the *moat half* (the market intelligence).
+  CardLadder charges **$20/mo** for a proprietary sales DB + live per-item value + daily
+  movement — not for a list. Collectors' real problem is **information asymmetry**, not data
+  entry: the vintage-camera market is opaque, condition-driven, and volatile (up 50–200% since
+  2019), and a spreadsheet cannot answer "what's it worth today?" or "is this a good buy?".
+  There is no CardLadder for cameras. That gap is the product.
+- **Observer steers (locked, 2026-06-13):** (1) Problem vector = **Both** — living valuation is
+  the core (powers portfolio + insurance + future history); the "good buy?" deal check is the
+  weekly-use hook; both ride the same comp data. (2) Comp data = **crowd-sourced sales DB**
+  (moat), seeded by us, no external-API dependency on the POC critical path.
+- **Constraint:** eBay **Marketplace Insights API (sold listings) is partner-gated / effectively
+  unavailable** to small projects (confirmed via eBay developer forums). So automated sold-comp
+  ingestion is **not** on the POC path. Seed = a few hundred hand-curated public sale prices
+  (`status: 'seed'`); the dataset then compounds via user submissions. Applying for eBay
+  partner access is an **optional, non-blocking** parallel bet (PROCUREMENT).
+- **Consequences:** New top-level `comps` collection + server-side valuation engine
+  (`lib/valuation.js`); item `currentValue` becomes a *computed* `estimatedValue` (+ optional
+  user override); new deal-check page/endpoint; "log a sale" crowd loop; export template shows
+  comp evidence; `firestore.rules` adds `comps` (authed read; user can only create own
+  `user-submitted` comps; `seed`/`verified` are Admin-only). Per-user item rules unchanged.
+  ADR-0005's old 5-item DoD is **superseded** by the new pivot DoD (PM to finalize in the
+  brief). Valuation *history over time* remains post-POC.
+
 ## ADR-0005 · 2026-06-12 · POC deadline set to 2026-06-19; valuation history deferred post-POC
+> **SUPERSEDED by ADR-0006 (2026-06-13).** The original 5-item DoD (auth / add item / gallery /
+> insurance-PDF-as-differentiator / quality gate) described the rejected ledger product. The
+> insurance PDF is no longer the differentiator. See ADR-0006 for the new thesis + DoD.
+
 - **Decision:** The working POC must be complete by 2026-06-19 (~7 days from approval).
   Valuation history (timestamped value log per item) and automated price feeds are explicitly
   deferred to post-POC. The POC DoD is 5 objectively verifiable items: auth, add item,

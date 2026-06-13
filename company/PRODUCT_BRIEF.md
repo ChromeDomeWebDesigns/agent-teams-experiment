@@ -8,121 +8,210 @@
 
 **Approval: APPROVED**
 **Approved by:** zcuddy (human)
-**Date:** 2026-06-12
+**Date (original):** 2026-06-12
+**Pivoted:** 2026-06-13 (ADR-0006 — observer accepted)
 **Working name:** Vault (placeholder — rename welcome)
 **Locked beachhead:** Vintage cameras & lenses (data model stays category-extensible)
 
 ## Problem
-Serious hobby collectors track high-value collections in spreadsheets, photos scattered in
-their camera roll, and forum posts. This breaks down in two moments that matter most:
-1. **Insurance / loss.** After theft, fire, or damage, collectors can't produce the
-   documented proof (itemized list, photos, condition, value, provenance) that insurers
-   require to pay a claim.
-2. **Valuation drift.** Collection value changes over time; spreadsheets don't track value
-   history, so collectors don't actually know what they own or what it's worth.
+
+Vintage camera and lens collectors operate in an opaque, condition-driven market that has
+moved 50–200% since 2019 on the analog revival. Their two most important questions are ones
+that a spreadsheet structurally cannot answer:
+
+1. **"What's my collection worth today?"** Values drift constantly; condition is a major
+   multiplier; and there is no public index for vintage cameras the way there is for cars or
+   stocks. Collectors either guess, pay for appraisals, or watch forum threads.
+
+2. **"Is this a good buy?"** When a collector finds a Leica M6 on eBay or at a local camera
+   shop, they have no fast, trustworthy way to know whether the asking price is fair, high, or
+   a steal. The information asymmetry favors dealers.
+
+The underlying cause is the same: **no shared, searchable record of what cameras and lenses
+actually sold for** — condition-adjusted and recent. CardLadder ($20/mo) built that database
+for trading cards. Discogs built it for vinyl. BrickLink built it for LEGO. There is no
+equivalent for cameras. That gap is the product.
+
+Data entry and storage (a catalog, a spreadsheet replacement) does not solve this. The
+collector is already in their spreadsheet; that part works. What fails them is the
+**intelligence layer** on top: live per-item estimates, deal verification, and a portfolio
+total they can trust.
 
 ## Market gap / why now
-Discovery (7 web searches) consistently surfaced collectors as an **underserved** segment
-needing "inventory management tailored to their hobbies — cataloging, valuation tracking,
-insurance documentation, and trading facilitation." Crucially, the *obvious* adjacent gaps
-turned out already served, which is what makes this one stand out:
-- Small-nonprofit volunteer/donation tools — **served** (POINT, Timecounts, Wave; free tiers).
-- Small food-business HACCP/temperature logging — **served** (FoodDocs, Zip HACCP, SafetyCulture).
-- Horizontal solo-service CRM/scheduling — **crowded** (Jobber/Housecall et al., the very
-  "bloated/expensive" tools people complain about).
 
-The **long tail of collectible categories** is the opposite: the biggest categories have
-apps (cards → CardLadder/Collectr; vinyl → Discogs; LEGO → BrickLink), but passionate niche
-categories (vintage cameras & lenses, film/audio gear, fountain pens, etc.) live in
-spreadsheets. The wedge competitors miss: **insurance-ready documentation** + **valuation
-history**, not just a list.
+Discovery (ADR-0002, cross-referenced with the pivot in ADR-0006) confirmed the pattern:
+
+- **CardLadder** charges $20/month for a proprietary sales database + live per-card value +
+  daily portfolio movement — not for a list. The list is the loss leader.
+- **Discogs** monetizes the sales database (marketplace fees, subscription pricing data) — not
+  the catalog.
+- **BrickLink** is the price guide and marketplace; the inventory tracker is a byproduct.
+
+In every case the **moat is the market intelligence**, not the storage. The vintage camera
+market has communities (r/AnalogCommunity, Photography-on-the-Net, Rangefinderforum, active
+FB groups), high per-item values (→ real insurance and deal-risk stakes), and zero equivalent
+to CardLadder/Discogs. The collectors building their own sold-price spreadsheets are doing the
+hard work manually; they would contribute to a shared, crowd-sourced database if one existed.
+
+The analog revival makes the timing acute: the market is volatile enough that stale prices
+mislead, but active enough that users will contribute new comps regularly.
 
 ## Target user
-**Beachhead (recommended): vintage camera & lens collectors.** Passionate, high per-item
-value (→ real insurance relevance), highly reachable in active online communities
-(r/AnalogCommunity, forums, FB groups), and currently spreadsheet-bound with no dedicated
-tool. Data model stays **category-extensible** so we can expand to adjacent niches later.
-> ⚠️ Beachhead choice is the main strategic call for your review — see "Open question."
+
+**Beachhead: vintage camera and lens collectors.** Passionate, high per-item value (real
+insurance and deal-risk stakes), concentrated in reachable online communities, and currently
+spreadsheet-bound with no dedicated price-intelligence tool.
+
+They open the app most often when: (a) they are considering a purchase and want a fast deal
+check, or (b) they are curious what their portfolio is worth after a run-up in prices. The
+insurance export comes up only when something happens — it must be correct, but it is not the
+reason they return weekly. The deal check is.
+
+Data model stays **category-extensible** — the engine and comp schema generalize to any
+collectible.
 
 ## Proposed solution (v1 thesis)
-The simplest way for a collector to **catalog, value, and insure** a collection.
-v1 = a focused web app where a logged-in user can:
-- Add items with photos, category-specific fields (make/model/serial/condition/notes),
-  purchase price + date, and a manually-entered current value.
-- Track **valuation history** per item (a timestamped value log) and see total collection value.
-- Generate an **insurance-ready export** (PDF/printable): itemized list with photos, values,
-  totals, and a generated date — the artifact you hand an insurer or adjuster.
+
+A market-aware collection manager for vintage camera/lens collectors with two core capabilities:
+
+1. **Living, comp-backed valuation.** Adding an item (make/model/condition) yields a
+   computed `estimatedValue` — a median estimate with a low/high range and a sample size —
+   derived from a shared, crowd-sourced sales dataset (`comps` collection). No manual value
+   entry required. The portfolio total is the sum of these estimates. As comps accumulate,
+   estimates sharpen.
+
+2. **"Good buy?" deal check.** A dedicated page: enter make/model/condition/asking price →
+   get an under/at/over-market verdict against the comp range, with the sample count shown so
+   the user knows the confidence level. This is the weekly-use hook that brings collectors
+   back between portfolio updates.
+
+Both capabilities ride the same `comps` dataset, seeded by us and compounded by users via a
+"log a sale" action (the crowd loop). This dataset is the moat.
+
+**Insurance export** survives as a byproduct: the itemized output now shows comp-backed
+estimates and "based on N recent sales" evidence per item — a more credible artifact for an
+adjuster than a self-typed number. The export is not the differentiator; accurate values are.
+
+The v1 user loop:
+1. Sign up → add items (make/model/condition) → see computed estimates and a live portfolio
+   total.
+2. Spot a listing → open Deal Check → get a verdict in seconds.
+3. After buying or selling → "Log a sale" → the shared dataset gets stronger.
+4. Something happens to the collection → export the comp-backed insurance document.
 
 ## Why this stack fits
-- **Firestore** is ideal: per-user `collections/items` documents, each with a sub-collection
-  of timestamped `valuations`; real-time updates; no relational/analytical queries needed.
-- **Firebase Storage** holds item photos. **Firebase Auth** for sign-in.
-- **Nuxt 2 SPA** for the catalog/gallery UI; **Express** for server-side concerns (auth'd
-  PDF export generation, future price-data integrations) via the Admin SDK.
-- No paid third-party APIs required for v1 (valuation is manual; automated price feeds are a
-  deliberate Phase-2 deferral).
 
-## Success criteria (v1)
-- A collector can add 20 items with photos in one sitting without friction.
-- They can produce an insurance-ready PDF of their collection.
-- **Validation target:** 5–10 collectors from one community use it on their real collection
-  and ≥3 say they'd keep using it / it beats their spreadsheet. (Qualitative, not revenue.)
+- **`comps` collection (Firestore, top-level, shared):** documents are indexed by `modelKey`
+  (normalized make+model) with `condition`, `salePrice`, `saleDate`, `status`. Range queries
+  by `modelKey` + recency are exactly what Firestore handles well.
+- **Server-side valuation engine (`lib/valuation.js`, Express, Admin SDK):** a pure function
+  over an injected comp set — easy to unit-test in isolation; runs server-side so the matching
+  and multiplier logic is not exposed to the client.
+- **Deal-check and valuation endpoints** reuse the same engine behind `verifyFirebaseToken`
+  middleware; no second auth system needed.
+- **Nuxt 2 SPA** handles the gallery, deal-check page, and log-a-sale form with the existing
+  Vuex + axios pattern.
+- **No paid third-party APIs required.** The crowd-sourced design eliminates the external-API
+  dependency on the POC critical path. eBay Marketplace Insights (sold listings) is
+  partner-gated and effectively unavailable to small projects; we are applying for access as a
+  parallel bet (see PROCUREMENT) but do not need it to ship.
 
-## Out of scope (for v1)
-- Automated/market price feeds, eBay/sold-comp integrations.
-- Trading/marketplace, social features, multi-user/shared collections.
-- Mobile native app (responsive web only), payments/subscriptions.
+## Success criteria (pivot POC)
 
-## Required resources / procurement
-- **A Firebase project** (free Spark tier is fine for v1) — provides the client config
-  (`FIREBASE_*`) and a server **service-account JSON** (`FIREBASE_SERVICE_ACCOUNT_PATH`,
-  kept outside the repo). Logged in `company/PROCUREMENT.md`.
-- Nothing else for v1. (Domain/hosting deferred until there's something to ship.)
+- A collector can add items by make/model/condition and immediately see a computed estimate
+  with a range and sample count — no manual value entry.
+- They can run a deal check on any listed item and get a verdict in under 10 seconds.
+- They can log a sale and see the estimate for that model shift (demonstrating the crowd loop).
+- The insurance export shows comp-backed estimates and evidence, not blank/manual values.
+- At least the top 10 camera models in the seed dataset return confident estimates (sampleSize
+  >= 5 per condition tier), so the POC is demonstrable without needing user contributions.
 
-## Open question for the human (please weigh in at approval)
-1. **Beachhead category** — go with vintage cameras/lenses (recommended: underserved +
-   reachable), or do you prefer a bigger-but-more-competitive category (e.g., trading cards),
-   or a different collectible you have access to a community for?
-2. **Working name** — keep "Vault" placeholder or set your own?
+**Validation target (unchanged):** 5–10 collectors from one community use it on their real
+collection and >= 3 say they would keep using it / it beats their spreadsheet.
+
+## Out of scope (for the pivot POC)
+
+- **Valuation history over time** — timestamped value log per item, history chart. Post-POC.
+- **Automated sold-comp ingestion** — live scraping or a paid API feed. Post-POC (and gated
+  on eBay partner access if that path materializes).
+- **Real-time listing alerts** — "watch this model and alert me when a listing is under X."
+  Requires a listing feed we do not have. Post-POC.
+- **Lightweight moderation / flagging** of user-submitted comps. Post-POC.
+- **Watchlist** (save a model for quick re-check). Inbound alerts depend on a feed we do not
+  have; the page-load deal-check covers the POC use case. Post-POC.
+- Category expansion, trading/marketplace, social features, mobile native app,
+  payments/subscriptions.
 
 ---
 
 ## POC Definition of Done
 
-> Deadline: **2026-06-19**. When every item below is checked, the POC is complete — we stop
-> and summarize. We do NOT iterate further without human direction.
+> Supersedes ADR-0005's original 5-item DoD (which described the rejected ledger product).
+> Proposed deadline: **2026-06-20** (7 days from pivot approval 2026-06-13; CEO-confirmable).
+> When every item below is checked, the pivot POC is complete — we stop and summarize.
+> We do NOT iterate further without human direction. No gold-plating.
 
-1. **Auth.** A user can sign up and sign in with email/password (Firebase Auth). All app
-   routes except /login and /signup are guarded; unauthenticated access redirects to /login.
-2. **Add item.** A logged-in user can submit a form to add a vintage camera/lens item with:
-   make, model, serial number, condition, purchase price, purchase date, current value, and
-   at least one photo. The item is persisted to their Firestore `items` collection.
-3. **Gallery.** The user can view all their items in a list/gallery with total collection
-   value displayed. Items belong strictly to the authenticated user (no cross-user leakage).
-4. **Insurance export.** The user can trigger an export that produces a printable/PDF
-   document containing: itemized list with photos, make/model, condition, value per item,
-   collection total, and a generated date. This is the core differentiator — it must work
-   end-to-end (client action → server endpoint → rendered output the user can print/save).
-5. **Quality gates.** Per-user Firestore security rules deny cross-user document access
-   (verified by test). Core flows (auth store, add-item form) have passing unit tests.
-   `npm run lint` passes clean. Changes are committed on a feature branch with a PR open
-   against `main`.
+1. **Computed value.** Adding an item by make/model/condition yields a computed
+   `estimatedValue` — a median estimate, low/high range, and sample size — drawn from the
+   `comps` dataset. No manual value field is required. A user override is allowed but not
+   prompted. Verified by: add a Leica M3 in Excellent condition; confirm the app returns a
+   numeric estimate with a range and a sampleSize >= 1 (from seed data) without the user
+   typing a price.
 
-### Explicitly POST-POC (do not build before DoD is met)
+2. **Living portfolio total.** The gallery displays a per-item comp-backed estimate (with
+   "based on N sales" label) and a running collection total that is the sum of estimates (or
+   user overrides). Verified by: add two items; confirm the total equals the sum of their
+   individual estimates; confirm the "N sales" label is visible on each card.
+
+3. **Deal check.** The deal-check page accepts make/model/condition/asking price and returns
+   an under/at/over-market verdict against the comp range, with the sample count shown.
+   Verified by: enter a Leica M3 Excellent at an asking price well above the known seed range;
+   confirm the app returns "over market" with a non-zero sample count.
+
+4. **Crowd loop.** An authenticated user can submit a "log a sale" entry (make/model/condition/
+   salePrice/saleDate); the submission is written to `comps` with `contributedBy = uid` and
+   `status = 'user-submitted'`. Running a subsequent valuation query for that model returns an
+   estimate that incorporates the new comp (sampleSize increases or estimate shifts).
+   Verified by: log a sale for a model currently not in the seed; confirm the item's estimate
+   now returns a result (sampleSize >= 1) where it previously returned "insufficient data."
+
+5. **Insurance export.** The export endpoint returns a printable document in which each line
+   item shows the comp-backed estimate and a "based on N recent sales" evidence note — not a
+   blank or a manually typed number. Verified by: trigger export after adding two seeded items;
+   confirm each line shows a numeric estimate and a non-zero N.
+
+6. **Quality gate.** All of the following must be true simultaneously:
+   - Per-user `users/{uid}/items` Firestore rules still deny cross-user access (existing
+     emulator tests remain green).
+   - `comps` Firestore rules pass emulator tests: authed users can read; authed user can
+     create a `user-submitted` comp where `contributedBy == request.auth.uid`; client cannot
+     write `seed` or `verified` comps; unauthenticated write is denied.
+   - Valuation engine (`lib/valuation.js`) has passing unit tests covering: correct estimate
+     for a known comp set, condition-multiplier application, "insufficient data" path when
+     sampleSize < threshold.
+   - Deal-check endpoint has passing integration/unit tests.
+   - `npm run lint` passes clean on both client and server.
+   - Changes are on a feature branch with a PR reviewed and merged to `main` by
+     `code-reviewer`.
+
+### Explicitly post-POC (do not build before DoD is met)
+
 - Valuation history over time (timestamped value log per item, history chart).
-- Automated price feeds or sold-comp lookups.
+- Automated sold-comp ingestion (live scraping or paid API feed).
+- Real-time listing / deal alerts.
+- Moderation and flagging of user-submitted comps.
+- Watchlist.
 - Category expansion, trading/marketplace, social features, mobile native app.
 
 ---
 
-## Targets / cadence to 2026-06-19
+## Targets / cadence to 2026-06-20
 
-- **Cycle 2 (now):** Firebase wiring — Auth (email/password), Firestore data model +
-  security rules, add-item form, item gallery. Blocked on human procurement of Firebase
-  creds.
-- **Cycle 3:** Insurance export — server-side PDF/print endpoint, client "Export" action
-  wired end-to-end. Polish: form validation, error states, basic responsive layout.
-- **Cycle 4:** Hardening — QA coverage on auth store + add-item flow, security-rules test,
-  lint gate, PR to `main`. POC DoD check.
+- **Cycle 5 (now):** Backend — valuation engine, comp seed script, deal-check and valuation
+  endpoints, updated export template, `comps` Firestore rules. Frontend — computed values in
+  store/gallery/item card, deal-check page, log-a-sale action+form, remove manual-value field.
+  QA — valuation unit tests, deal-check tests, comps emulator rules tests, updated item specs.
+- **Cycle 6 (if needed):** Integration hardening — cold-start UX ("limited data" messaging),
+  end-to-end verification run against live Firebase, final quality gate pass.
 
-We stop at POC. No further cycles without human direction.
+We stop at the pivot POC DoD. No further cycles without human direction.
