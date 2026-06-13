@@ -2,6 +2,23 @@
 
 > Newest entry at top. One short entry per cycle: what shipped, decisions, blockers, next.
 
+## Cycle 7 — CI (close the emulator-proof gap) (2026-06-13)
+- Added `.github/workflows/ci.yml`: lint + tests for both packages, and the Firestore **rules
+  suite under the emulator** (Temurin Java in the runner + `firebase-tools emulators:exec`),
+  mirroring cycle 4's local invocation. This **closes the DoD #6 gap** — the rules proof was
+  blocked locally by no Java; CI now runs it on every PR + push to main. Verifying the run is
+  green via `gh pr checks` before merge. Single-role infra → authored solo + reviewer-merged
+  (not a full team, per CLAUDE.md §1).
+
+## Cycle 6 — Harden + polish (2026-06-13)
+- Ran as team `vault-cycle6` (be/fe/qa/reviewer, peer collaboration). Shipped (PR #14):
+  **seed↔runtime modelKey parity regression test** (`__tests__/seedComps.spec.js`) that fails if
+  any seed entry's key diverges from `normalizeModelKey` — locks out the bug class found during the
+  seed run; **client polish** (AddItemModal validation/inline-errors/submit-guard; failed valuation
+  still saves `estimatedValue:null`); dropped the redundant `fetchItems` `where` filter. `be` made
+  `seedComps.js` test-importable (guarded `main`, exported `MODELS`/`buildComps`). Gates: server 91 /
+  29 emulator-skipped, client 81, lint clean.
+
 ## Seed run — live comps populated + seed-key parity bug fixed (2026-06-13)
 - **Observer authorized a live write** ("you should have the service account in the .env… see if
   you can accomplish this seed task"). Ran `scripts/seedComps.js` against `agent-teams-experiment`:
